@@ -49,6 +49,14 @@ async def launch_async():
         # -----------------------------
         LoggerManager.apply_config(config)
 
+        # Load config from YAML if provided
+        if args.config:
+            config.config_path = args.config
+            config.load_from_yaml(args.config)
+
+        # Apply CLI overrides if any
+        config.apply_cli_overrides(args)
+
         log.info("🚀 Launching host with arguments")
 
         # Create an instance of Host with parsed arguments

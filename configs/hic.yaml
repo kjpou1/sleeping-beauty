@@ -1,4 +1,4 @@
 debug: no
 
 logging:
-  level: CRITICAL
+  level: INFO

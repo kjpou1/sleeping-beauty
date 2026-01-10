@@ -19,15 +19,6 @@ class Host:
 
     def __init__(self, args: CommandLineArgs):
         self.args = args
-        self.config = Config()
-
-        # Load config from YAML if provided
-        if args.config:
-            self.config.config_path = args.config
-            self.config.load_from_yaml(args.config)
-
-        # Apply CLI overrides if any
-        self.config.apply_cli_overrides(args)
 
     # -----------------------------------------------------
     def run(self):
@@ -65,6 +56,7 @@ class Host:
         logging.warning(
             "🧭 WARNING - Hic svnt: entering uncharted operational territory."
         )
+        logging.error("🧭 ERROR - Hic svnt: entering uncharted operational territory.")
         logging.critical(
             "🧭 CRITICAL - Hic svnt: entering uncharted operational territory."
         )
