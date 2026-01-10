@@ -1,0 +1,13 @@
+[project]
+name = "sleeping-beauty"
+version = "0.1.0"
+description = "Personal sleep monitoring and LLM-based analysis"
+requires-python = ">=3.10"
+
+dependencies = [
+    "requests",
+    "python-dotenv",
+]
+
+[tool.uv]
+venv = ".venv"
