@@ -7,7 +7,20 @@ requires-python = ">=3.10"
 dependencies = [
     "requests",
     "python-dotenv",
+    "loguru>=0.7.3",
+    "pyyaml>=6.0.3",
 ]
 
-[tool.uv]
-venv = ".venv"
+[project.scripts]
+sleeping-beauty = "sleeping_beauty.launch_host:launch"
+sleeping_beauty = "sleeping_beauty.launch_host:launch"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["uv_build>=0.8.4,<0.9.0"]
+build-backend = "uv_build"
