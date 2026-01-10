@@ -2,11 +2,10 @@ import asyncio
 import sys
 
 from sleeping_beauty.config.config import Config
-from sleeping_beauty.exception import CustomException
 from sleeping_beauty.logging.logger_manager import LoggerManager
 from sleeping_beauty.models.command_line_args import CommandLineArgs
 
-logging = LoggerManager.get_logger(__name__)
+logger = LoggerManager.get_logger(__name__)
 
 
 class Host:
@@ -29,34 +28,29 @@ class Host:
         Dispatch the correct pipeline based on the CLI subcommand.
         """
         try:
-            logging.info("🚀 Starting host operations.")
+            logger.info("🚀 Starting host operations.")
 
             if self.args.command == "hic-svnt":
                 self.run_hic_svnt()
             else:
-                logging.error(f"❌ Unknown subcommand: {self.args.command}")
+                logger.error(f"❌ Unknown subcommand: {self.args.command}")
                 raise ValueError("Please specify a valid subcommand: 'hic-svnt'.")
 
-        except CustomException as e:
-            logging.error("🔥 A custom error occurred: %s", e)
-            raise
-        except Exception as e:
-            logging.error("💥 An unexpected error occurred: %s", e)
-            raise
         finally:
-            logging.info("✅ Shutting down host gracefully.")
+            logger.info("✅ Shutting down host gracefully.")
 
     # -----------------------------------------------------
     def run_hic_svnt(self):
         """
         Runs the Hic Svnt.
         """
-        logging.debug("🧭 DEBUG - Hic svnt: entering uncharted operational territory.")
-        logging.info("🧭 Hic svnt: entering uncharted operational territory.")
-        logging.warning(
+        logger.exception("Something failed")
+        logger.debug("🧭 DEBUG - Hic svnt: entering uncharted operational territory.")
+        logger.info("🧭 Hic svnt: entering uncharted operational territory.")
+        logger.warning(
             "🧭 WARNING - Hic svnt: entering uncharted operational territory."
         )
-        logging.error("🧭 ERROR - Hic svnt: entering uncharted operational territory.")
-        logging.critical(
+        logger.error("🧭 ERROR - Hic svnt: entering uncharted operational territory.")
+        logger.critical(
             "🧭 CRITICAL - Hic svnt: entering uncharted operational territory."
         )
