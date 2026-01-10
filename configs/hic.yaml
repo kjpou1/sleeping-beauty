@@ -1,0 +1,4 @@
+debug: no
+
+logging:
+  level: CRITICAL

@@ -22,6 +22,7 @@ class Config(metaclass=SingletonMeta):
 
         load_dotenv()
 
+        self._log_level = os.getenv("LOG_LEVEL", "INFO")
         self._debug = os.getenv("DEBUG", False)
         self.PROJECT_ROOT = get_project_root()
 
@@ -63,8 +64,13 @@ class Config(metaclass=SingletonMeta):
 
         print(f"[Config] Loaded YAML config: {path}")
 
+        # --- Logging level (explicit policy) ---
+        logging_cfg = data.get("logging", {})
+        if "level" in logging_cfg:
+            self.log_level = logging_cfg["level"]
+
+        # --- Debug flag (convenience) ---
         if "debug" in data:
-            print(f"[Config] Overriding 'debug': {self._debug} → {data['debug']}")
             self.debug = data["debug"]
 
     @property
@@ -82,10 +88,37 @@ class Config(metaclass=SingletonMeta):
         return self._debug
 
     @debug.setter
-    def debug(self, value):
+    def debug(self, value: bool):
         if not isinstance(value, bool):
-            raise ValueError("debug must be a boolean.")
+            raise ValueError("debug must be a boolean")
+
+        if self._debug != value:
+            print(f"[Config] Setting 'debug': {self._debug} → {value}")
+
         self._debug = value
+
+        # Optional convenience behavior
+        if value:
+            self._log_level = "DEBUG"
+
+    @property
+    def log_level(self) -> str:
+        return self._log_level
+
+    @log_level.setter
+    def log_level(self, value: str):
+        if not isinstance(value, str):
+            raise ValueError("log_level must be a string")
+
+        value = value.upper()
+        allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if value not in allowed:
+            raise ValueError(f"Invalid log level: {value}")
+
+        if self._log_level != value:
+            print(f"[Config] Setting 'log_level': {self._log_level} → {value}")
+
+        self._log_level = value
 
     def print_config_info(self):
         print("=" * 50)

@@ -156,3 +156,13 @@ class LoggerManager:
 
         if log_dir:
             cls.configure_file_logging(log_dir)
+
+    @classmethod
+    def apply_config(cls, config):
+        if not cls._bootstrapped:
+            raise RuntimeError("LoggerManager.bootstrap() must be called first")
+
+        cls.set_log_level(config.log_level)
+
+        if hasattr(config, "LOG_DIR"):
+            cls.configure_file_logging(config.LOG_DIR)

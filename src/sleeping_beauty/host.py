@@ -60,4 +60,11 @@ class Host:
         """
         Runs the Hic Svnt.
         """
+        logging.debug("🧭 DEBUG - Hic svnt: entering uncharted operational territory.")
         logging.info("🧭 Hic svnt: entering uncharted operational territory.")
+        logging.warning(
+            "🧭 WARNING - Hic svnt: entering uncharted operational territory."
+        )
+        logging.critical(
+            "🧭 CRITICAL - Hic svnt: entering uncharted operational territory."
+        )

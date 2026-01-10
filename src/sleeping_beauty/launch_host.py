@@ -29,16 +29,27 @@ async def launch_async():
     try:
         args = CommandLine.parse_arguments()
 
-        log.info(
-            "Launching host with arguments",
-            extra={"args": args},
-        )
+        # -----------------------------
+        # Load config
+        # -----------------------------
+        config = Config()
+        if args.config:
+            config.load_from_yaml(args.config)
 
-        LoggerManager.initialize_from_args(args, log_dir=Config().LOG_DIR)
-        # if args.debug:
-        #     LoggerManager.set_log_level(logging.DEBUG)
+        # -----------------------------
+        # Apply CLI overrides to config
+        # -----------------------------
+        if getattr(args, "log_level", None):
+            config.log_level = args.log_level
+        elif getattr(args, "debug", False):
+            config.debug = True
 
-        # LoggerManager.configure_file_logging(Config().LOG_DIR)
+        # -----------------------------
+        # Phase 2: FINAL logging policy
+        # -----------------------------
+        LoggerManager.apply_config(config)
+
+        log.info("🚀 Launching host with arguments")
 
         # Create an instance of Host with parsed arguments
         instance = Host(args)
