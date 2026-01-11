@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import asyncio
 from datetime import date
-from typing import Callable, NoReturn, Optional
+from typing import Callable, Iterable, NoReturn, Optional
 
 import httpx
 
+from sleeping_beauty.clients.oura_endpoints import session as session_endpoints
 from sleeping_beauty.clients.oura_endpoints.daily_sleep_score import (
     parse_daily_sleep_score_item,
     parse_daily_sleep_score_page,
@@ -25,6 +26,7 @@ from sleeping_beauty.clients.oura_errors import (
 from sleeping_beauty.models.oura.daily_sleep_score import DailySleepScore
 from sleeping_beauty.models.oura.page import Page
 from sleeping_beauty.models.oura.personal_info import PersonalInfo
+from sleeping_beauty.models.oura.session import Session
 
 TokenProvider = Callable[[], str]
 
@@ -394,3 +396,62 @@ class OuraApiClient:
         Synchronous wrapper around get_daily_sleep_score().
         """
         return self._run(self.get_daily_sleep_score(document_id=document_id))
+
+    # ---------------------------------------------------------------------
+    # Public API — Sessions (Multiple Document)
+    # ---------------------------------------------------------------------
+    async def get_sessions(
+        self,
+        *,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> Iterable[Session]:
+        next_token = None
+        while True:
+            batch, next_token = await session_endpoints.get_sessions(
+                self,
+                start_date=start_date,
+                end_date=end_date,
+                next_token=next_token,
+            )
+            for item in batch:
+                yield item
+            if not next_token:
+                break
+
+    def get_sessions_sync(
+        self,
+        *,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ):
+        """
+        Synchronous wrapper around get_sessions().
+        """
+
+        async def _collect():
+            return [
+                item
+                async for item in self.get_sessions(
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            ]
+
+        return iter(self._run(_collect()))
+
+    # ---------------------------------------------------------------------
+    # Public API — Session (Single Document)
+    # ---------------------------------------------------------------------
+
+    async def get_session(self, document_id: str) -> Session:
+        return await session_endpoints.get_session(self, document_id)
+
+    def get_session_sync(
+        self,
+        document_id: str,
+    ) -> Session:
+        """
+        Synchronous wrapper around get_session().
+        """
+        return self._run(self.get_session(document_id))
