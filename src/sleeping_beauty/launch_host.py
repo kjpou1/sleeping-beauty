@@ -8,7 +8,7 @@ creating a Host instance, and launching its main logic asynchronously.
 import asyncio
 
 from sleeping_beauty.config.config import Config
-from sleeping_beauty.logging.logger_manager import LoggerManager
+from sleeping_beauty.logsys.logger_manager import LoggerManager
 from sleeping_beauty.runtime.command_line import CommandLine
 
 # Phase 1: bootstrap logging ASAP

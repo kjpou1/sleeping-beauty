@@ -1,0 +1,10 @@
+debug: no
+
+logging:
+  level: INFO
+
+auth:
+  oura:
+    client_id: null
+    client_secret: null
+    token_path: "~/.sleeping_beauty/oura_token.json"

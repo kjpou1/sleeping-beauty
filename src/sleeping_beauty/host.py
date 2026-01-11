@@ -2,8 +2,9 @@ import asyncio
 import sys
 
 from sleeping_beauty.config.config import Config
-from sleeping_beauty.logging.logger_manager import LoggerManager
+from sleeping_beauty.logsys.logger_manager import LoggerManager
 from sleeping_beauty.models.command_line_args import CommandLineArgs
+from sleeping_beauty.services.auth_service import AuthService
 
 logger = LoggerManager.get_logger(__name__)
 
@@ -30,8 +31,9 @@ class Host:
         try:
             logger.info("🚀 Starting host operations.")
 
-            if self.args.command == "hic-svnt":
-                self.run_hic_svnt()
+            if self.args.command == "auth":
+                await self.run_auth()
+
             else:
                 logger.error(f"❌ Unknown subcommand: {self.args.command}")
                 raise ValueError("Please specify a valid subcommand: 'hic-svnt'.")
@@ -40,17 +42,9 @@ class Host:
             logger.info("✅ Shutting down host gracefully.")
 
     # -----------------------------------------------------
-    def run_hic_svnt(self):
+    async def run_auth(self):
         """
-        Runs the Hic Svnt.
+        Runs the Auth service.
         """
-        logger.exception("Something failed")
-        logger.debug("🧭 DEBUG - Hic svnt: entering uncharted operational territory.")
-        logger.info("🧭 Hic svnt: entering uncharted operational territory.")
-        logger.warning(
-            "🧭 WARNING - Hic svnt: entering uncharted operational territory."
-        )
-        logger.error("🧭 ERROR - Hic svnt: entering uncharted operational territory.")
-        logger.critical(
-            "🧭 CRITICAL - Hic svnt: entering uncharted operational territory."
-        )
+        auth_service = AuthService()
+        auth_service.run(self.args.subcommand)

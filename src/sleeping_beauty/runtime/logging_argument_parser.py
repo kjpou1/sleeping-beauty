@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from sleeping_beauty.logging.logger_manager import LoggerManager
+from sleeping_beauty.logsys.logger_manager import LoggerManager
 
 
 class LoggingArgumentParser(ArgumentParser):

@@ -11,7 +11,8 @@ class CommandLineArgs:
     """
 
     # === Core CLI ===
-    command: str  # Subcommand to execute
+    command: str  # Command to execute
+    subcommand: Optional[str] = None  # Subcommand to execute
     config: Optional[str] = None  # Path to YAML config
     debug: bool = False  # Verbose logging
 

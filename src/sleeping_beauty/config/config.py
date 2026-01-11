@@ -36,6 +36,11 @@ class Config(metaclass=SingletonMeta):
 
         self.LOG_DIR = os.path.join(self.BASE_DIR, "logs")
 
+        # === Auth / Oura ===
+        self._oura_client_id = None
+        self._oura_client_secret = None
+        self._oura_token_path = Path("~/.sleeping_beauty/oura_token.json").expanduser()
+
         Config._is_initialized = True
 
     def _ensure_directories_exist(self):
@@ -72,6 +77,19 @@ class Config(metaclass=SingletonMeta):
         # --- Debug flag (convenience) ---
         if "debug" in data:
             self.debug = data["debug"]
+
+        # --- Auth / Oura ---
+        auth_cfg = data.get("auth", {})
+        oura_cfg = auth_cfg.get("oura", {})
+
+        if "client_id" in oura_cfg:
+            self._oura_client_id = oura_cfg["client_id"]
+
+        if "client_secret" in oura_cfg:
+            self._oura_client_secret = oura_cfg["client_secret"]
+
+        if "token_path" in oura_cfg:
+            self.oura_token_path = oura_cfg["token_path"]
 
     @property
     def config_path(self):
@@ -120,10 +138,54 @@ class Config(metaclass=SingletonMeta):
 
         self._log_level = value
 
+    @property
+    def oura_client_id(self) -> str:
+        """
+        Oura OAuth client ID.
+
+        Precedence:
+          1. YAML config
+          2. Environment variable OURA_CLIENT_ID
+        """
+        return self._oura_client_id or os.getenv("OURA_CLIENT_ID", "")
+
+    @property
+    def oura_client_secret(self) -> str:
+        """
+        Oura OAuth client secret.
+
+        Precedence:
+          1. YAML config
+          2. Environment variable OURA_CLIENT_SECRET
+        """
+        return self._oura_client_secret or os.getenv("OURA_CLIENT_SECRET", "")
+
+    @property
+    def oura_token_path(self) -> Path:
+        """
+        Filesystem path where Oura OAuth tokens are stored.
+        """
+        return self._oura_token_path
+
+    @oura_token_path.setter
+    def oura_token_path(self, value: str | Path):
+        if not value:
+            raise ValueError("oura_token_path cannot be empty")
+
+        path = Path(value).expanduser()
+        self._oura_token_path = path
+
     def print_config_info(self):
         print("=" * 50)
         print("📂 Configuration")
         print("-" * 50)
+        print("-" * 50)
+        print("🔐 Auth / Oura")
+        print("-" * 50)
+        print(f"{'Token path:':25} {self.oura_token_path}")
+        print(f"{'Client ID set:':25} {bool(self.oura_client_id)}")
+        print(f"{'Client Secret set:':25} {bool(self.oura_client_secret)}")
+
         # print(f"{'Datasets/raw dir:':25} {self.DATASETS_RAW_DIR}")
         # print(f"{'Datasets/processed dir:':25} {self.DATASETS_PROCESSED_DIR}")
         # print(f"{'Artifacts/raw dir:':25} {self.RAW_DATA_DIR}")
@@ -179,6 +241,4 @@ class Config(metaclass=SingletonMeta):
     @classmethod
     def reset(cls):
         cls._is_initialized = False
-        cls._instances = {}
-        cls._instances = {}
         cls._instances = {}
