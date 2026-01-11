@@ -29,6 +29,9 @@ async def launch_async():
         if args.config:
             config.load_from_yaml(args.config)
 
+        # Apply CLI overrides if any
+        config.apply_cli_overrides(args)
+
         # -----------------------------
         # Apply CLI overrides to config
         # -----------------------------

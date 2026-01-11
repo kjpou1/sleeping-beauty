@@ -5,6 +5,7 @@ from sleeping_beauty.config.config import Config
 from sleeping_beauty.logsys.logger_manager import LoggerManager
 from sleeping_beauty.models.command_line_args import CommandLineArgs
 from sleeping_beauty.services.auth_service import AuthService
+from sleeping_beauty.services.sleep_service import SleepService
 
 logger = LoggerManager.get_logger(__name__)
 
@@ -33,10 +34,11 @@ class Host:
 
             if self.args.command == "auth":
                 await self.run_auth()
-
+            elif self.args.command == "sleep":
+                await self.run_sleep()
             else:
                 logger.error(f"❌ Unknown subcommand: {self.args.command}")
-                raise ValueError("Please specify a valid subcommand: 'hic-svnt'.")
+                raise ValueError("Please specify a valid subcommand: 'auth', 'sleep'.")
 
         finally:
             logger.info("✅ Shutting down host gracefully.")
@@ -48,3 +50,16 @@ class Host:
         """
         auth_service = AuthService()
         auth_service.run(self.args.subcommand)
+
+    # -----------------------------------------------------
+    async def run_sleep(self):
+        """
+        Dispatch sleep-related subcommands.
+        """
+        if self.args.subcommand == "summary":
+            service = SleepService()
+            await service.run(self.args.subcommand)
+
+        else:
+            logger.error(f"❌ Unknown sleep subcommand: {self.args.subcommand}")
+            raise ValueError("Please specify a valid sleep subcommand: 'summary'.")

@@ -46,6 +46,22 @@
       "args": ["auth", "--config", "configs/config.yaml", "revoke"],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Sleep Summary",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "src/sleeping_beauty/launch_host.py",
+      "args": [
+        "sleep",
+        "summary",
+        "--config",
+        "configs/config.yaml",
+        "--view",
+        "yesterday"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

@@ -14,3 +14,7 @@ auth:
       - personal
       - session
       - heartrate
+
+
+sleep:
+  #view: week

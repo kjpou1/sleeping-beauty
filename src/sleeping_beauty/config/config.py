@@ -42,6 +42,10 @@ class Config(metaclass=SingletonMeta):
         self._oura_token_path = Path("~/.sleeping_beauty/oura_token.json").expanduser()
         self._oura_scopes: list[str] = ["daily", "personal"]  # safe default
 
+        self._sleep_view: Optional[str] = None
+        self._sleep_start_date: Optional[str] = None
+        self._sleep_end_date: Optional[str] = None
+
         Config._is_initialized = True
 
     def _ensure_directories_exist(self):
@@ -65,6 +69,40 @@ class Config(metaclass=SingletonMeta):
                 f"[Config] Overriding Oura redirect_uri from CLI: {args.redirect_uri}"
             )
             self._oura_redirect_uri = args.redirect_uri
+
+        if _was_explicit(args, "view"):
+            print(f"[Config] Overriding view from CLI: {args.view}")
+            self.sleep_view = args.view
+
+    def _load_sleep_section(self, data: dict) -> None:
+        if not data:
+            return
+
+        sleep_cfg = data.get("sleep", {})
+
+        if not sleep_cfg:
+            return
+
+        if "view" in sleep_cfg:
+            print(
+                f"[Config] Overriding 'view': "
+                f"{self._sleep_view} → {sleep_cfg.get("view")}"
+            )
+            self.set_sleep_view(sleep_cfg.get("view"))
+
+        if "start_date" in sleep_cfg:
+            print(
+                f"[Config] Overriding 'sleep.start_date': "
+                f"{self._sleep_start_date} → {sleep_cfg.get('start_date')}"
+            )
+            self.set_sleep_start_date(sleep_cfg.get("start_date"))
+
+        if "end_date" in sleep_cfg:
+            print(
+                f"[Config] Overriding 'sleep.end_date': "
+                f"{self._sleep_end_date} → {sleep_cfg.get('end_date')}"
+            )
+            self.set_sleep_end_date(sleep_cfg.get("end_date"))
 
     def load_from_yaml(self, path: str):
         """
@@ -115,6 +153,8 @@ class Config(metaclass=SingletonMeta):
             if uri is not None and not isinstance(uri, str):
                 raise ValueError("auth.oura.redirect_uri must be a string or null")
             self._oura_redirect_uri = uri
+
+        self._load_sleep_section(data)
 
     @property
     def config_path(self):
@@ -227,6 +267,53 @@ class Config(metaclass=SingletonMeta):
             or os.getenv("OURA_REDIRECT_URI")
             or "http://localhost:8400/callback"
         )
+
+    # --------------------------------------------
+    # Sleep: view
+    # --------------------------------------------
+    @property
+    def sleep_view(self) -> Optional[str]:
+        """
+        Calendar-based sleep view.
+        Expected values: today, yesterday, week, month.
+        """
+        return self._sleep_view
+
+    @sleep_view.setter
+    def sleep_view(self, value: Optional[str]) -> None:
+        """
+        Set sleep view.
+
+        No validation here; validation is handled
+        by the sleep service layer.
+        """
+        self._sleep_view = value
+
+    # --------------------------------------------
+    # Sleep: start_date
+    # --------------------------------------------
+    @property
+    def sleep_start_date(self) -> Optional[str]:
+        """
+        Sleep summary start date (YYYY-MM-DD).
+        """
+        return self._sleep_start_date
+
+    def set_sleep_start_date(self, value: Optional[str]) -> None:
+        self._sleep_start_date = value
+
+    # --------------------------------------------
+    # Sleep: end_date
+    # --------------------------------------------
+    @property
+    def sleep_end_date(self) -> Optional[str]:
+        """
+        Sleep summary end date (YYYY-MM-DD).
+        """
+        return self._sleep_end_date
+
+    def set_sleep_end_date(self, value: Optional[str]) -> None:
+        self._sleep_end_date = value
 
     def print_config_info(self):
         print("=" * 50)
