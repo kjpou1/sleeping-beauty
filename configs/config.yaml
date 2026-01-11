@@ -13,3 +13,4 @@ auth:
       - daily
       - personal
       - session
+      - heartrate

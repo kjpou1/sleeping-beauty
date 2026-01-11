@@ -11,6 +11,7 @@ from sleeping_beauty.clients.oura_endpoints.daily_sleep_score import (
     parse_daily_sleep_score_item,
     parse_daily_sleep_score_page,
 )
+from sleeping_beauty.clients.oura_endpoints.heartrate import parse_heartrate_page
 from sleeping_beauty.clients.oura_endpoints.personal_info import parse_personal_info
 from sleeping_beauty.clients.oura_endpoints.sleep import (
     parse_sleep_document,
@@ -28,6 +29,7 @@ from sleeping_beauty.clients.oura_errors import (
     OuraServerError,
 )
 from sleeping_beauty.models.oura.daily_sleep_score import DailySleepScore
+from sleeping_beauty.models.oura.heartrate import HeartRateSample
 from sleeping_beauty.models.oura.page import Page
 from sleeping_beauty.models.oura.personal_info import PersonalInfo
 from sleeping_beauty.models.oura.session import Session
@@ -592,3 +594,86 @@ class OuraApiClient:
         Synchronous wrapper around get_sleep().
         """
         return self._run(self.get_sleep(document_id=document_id))
+
+    # ---------------------------------------------------------------------
+    # Public API — Heart Rate Time-Series
+    # ---------------------------------------------------------------------
+
+    async def get_heartrate_page(
+        self,
+        *,
+        start_datetime: date,
+        end_datetime: date,
+        next_token: str | None = None,
+    ) -> Page[HeartRateSample]:
+        """
+        Fetch one page of heart-rate time-series samples.
+
+        GET /v2/usercollection/heartrate
+        """
+
+        if start_datetime.tzinfo is None or end_datetime.tzinfo is None:
+            raise ValueError("start_datetime and end_datetime must be timezone-aware")
+
+        params: dict[str, str] = {
+            "start_datetime": start_datetime.isoformat(),
+            "end_datetime": end_datetime.isoformat(),
+        }
+
+        if next_token:
+            params["next_token"] = next_token
+
+        payload = await self._request_async(
+            method="GET",
+            path="/v2/usercollection/heartrate",
+            params=params,
+        )
+
+        return parse_heartrate_page(payload)
+
+    async def iter_heartrate(
+        self,
+        *,
+        start_datetime: date,
+        end_datetime: date,
+    ):
+        """
+        Iterate over all HeartRateSample records in the given datetime range.
+        """
+        token: str | None = None
+
+        while True:
+            page = await self.get_heartrate_page(
+                start_datetime=start_datetime,
+                end_datetime=end_datetime,
+                next_token=token,
+            )
+
+            for item in page.data:
+                yield item
+
+            if not page.next_token:
+                break
+
+            token = page.next_token
+
+    def iter_heartrate_sync(
+        self,
+        *,
+        start_datetime: date,
+        end_datetime: date,
+    ):
+        """
+        Synchronous wrapper around iter_heartrate().
+        """
+
+        async def _collect():
+            return [
+                item
+                async for item in self.iter_heartrate(
+                    start_datetime=start_datetime,
+                    end_datetime=end_datetime,
+                )
+            ]
+
+        return iter(self._run(_collect()))
