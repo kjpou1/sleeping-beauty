@@ -12,6 +12,10 @@ from sleeping_beauty.clients.oura_endpoints.daily_sleep_score import (
     parse_daily_sleep_score_page,
 )
 from sleeping_beauty.clients.oura_endpoints.personal_info import parse_personal_info
+from sleeping_beauty.clients.oura_endpoints.sleep import (
+    parse_sleep_document,
+    parse_sleep_document_page,
+)
 from sleeping_beauty.clients.oura_errors import (
     OuraApiError,
     OuraAuthError,
@@ -27,6 +31,7 @@ from sleeping_beauty.models.oura.daily_sleep_score import DailySleepScore
 from sleeping_beauty.models.oura.page import Page
 from sleeping_beauty.models.oura.personal_info import PersonalInfo
 from sleeping_beauty.models.oura.session import Session
+from sleeping_beauty.models.oura.sleep import SleepDocument
 
 TokenProvider = Callable[[], str]
 
@@ -455,3 +460,135 @@ class OuraApiClient:
         Synchronous wrapper around get_session().
         """
         return self._run(self.get_session(document_id))
+
+    # ---------------------------------------------------------------------
+    # Public API — Sleep Documents
+    # ---------------------------------------------------------------------
+
+    async def get_sleep_page(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        next_token: str | None = None,
+    ) -> Page[SleepDocument]:
+        """
+        Fetch one page of sleep documents.
+
+        GET /v2/usercollection/sleep
+        """
+        params: dict[str, str] = {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+
+        if next_token:
+            params["next_token"] = next_token
+
+        payload = await self._request_async(
+            method="GET",
+            path="/v2/usercollection/sleep",
+            params=params,
+        )
+
+        return parse_sleep_document_page(payload)
+
+    async def iter_sleep(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ):
+        """
+        Iterate over all SleepDocument records in the given date range.
+        """
+        token: str | None = None
+
+        while True:
+            page = await self.get_sleep_page(
+                start_date=start_date,
+                end_date=end_date,
+                next_token=token,
+            )
+
+            for item in page.data:
+                yield item
+
+            if not page.next_token:
+                break
+
+            token = page.next_token
+
+    def get_sleep_page_sync(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        next_token: str | None = None,
+    ) -> Page[SleepDocument]:
+        """
+        Synchronous wrapper around get_sleep_page().
+        """
+        return self._run(
+            self.get_sleep_page(
+                start_date=start_date,
+                end_date=end_date,
+                next_token=next_token,
+            )
+        )
+
+    def iter_sleep_sync(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ):
+        """
+        Synchronous wrapper around iter_sleep().
+        """
+
+        async def _collect():
+            return [
+                item
+                async for item in self.iter_sleep(
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            ]
+
+        return iter(self._run(_collect()))
+
+    # ---------------------------------------------------------------------
+    # Public API — Sleep Documents (Single Document)
+    # ---------------------------------------------------------------------
+
+    async def get_sleep(
+        self,
+        *,
+        document_id: str,
+    ) -> SleepDocument:
+        """
+        Fetch a single sleep document by ID.
+
+        GET /v2/usercollection/sleep/{document_id}
+        """
+        if not document_id:
+            raise ValueError("document_id must be a non-empty string")
+
+        payload = await self._request_async(
+            method="GET",
+            path=f"/v2/usercollection/sleep/{document_id}",
+            params=None,
+        )
+
+        return parse_sleep_document(payload)
+
+    def get_sleep_sync(
+        self,
+        *,
+        document_id: str,
+    ) -> SleepDocument:
+        """
+        Synchronous wrapper around get_sleep().
+        """
+        return self._run(self.get_sleep(document_id=document_id))
