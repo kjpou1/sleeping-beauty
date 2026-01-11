@@ -1,5 +1,6 @@
 from sleeping_beauty.config.config import Config
 from sleeping_beauty.logsys.logger_manager import LoggerManager
+from sleeping_beauty.models.sleep_context import SleepContext
 
 logger = LoggerManager.get_logger(__name__)
 
@@ -17,7 +18,7 @@ class SleepSummaryService:
         logger.debug("Initializing SleepSummaryService")
         self.config = Config()
 
-    async def run(self) -> None:
+    async def run(self, sleep_context: SleepContext) -> None:
         """
         Entry point for sleep summary execution.
 
@@ -26,7 +27,7 @@ class SleepSummaryService:
         subcommand : str
             The sleep subcommand to execute (expected: 'summary').
         """
-        logger.info(f"🛏️ SleepSummaryService invoked: {self.config.sleep_view}")
+        logger.info(f"🛏️ SleepSummaryService invoked: {sleep_context}")
 
         # -------------------------------------------------
         # Placeholder for future implementation

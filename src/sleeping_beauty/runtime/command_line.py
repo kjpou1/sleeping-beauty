@@ -115,6 +115,15 @@ class CommandLine:
 
         collect_explicit_args(parser_registry.get((args.command, subcommand)))
 
+        # ---------------------------------------------------
+        # Validation
+        # ---------------------------------------------------
+        if args.command == "sleep":
+            CommandLine._validate_sleep_args(
+                args=args,
+                parser=sleep_parser,
+            )
+
         # ===================================================
         # Return structured CommandLineArgs
         # ===================================================
@@ -139,3 +148,41 @@ class CommandLine:
     #         print("❌ The `hic-svnt` command requires --config.")
     #         parser.print_help()
     #         sys.exit(1)
+
+    @staticmethod
+    def _validate_sleep_args(args, parser):
+        """
+        Validate sleep command arguments at CLI level.
+        Operates on argparse.Namespace (NOT CommandLineArgs).
+        """
+
+        # Resolve subcommand from argparse namespace
+        subcommand = getattr(args, "sleep_command", None)
+
+        if subcommand is None:
+            parser.print_help()
+            sys.exit(1)
+
+        if subcommand != "summary":
+            print(f"❌ Unknown sleep subcommand: {subcommand}")
+            parser.print_help()
+            sys.exit(1)
+
+        explicit = args._explicit_args
+
+        # --- exclusivity: view vs dates ---
+        if "view" in explicit and ("start_date" in explicit or "end_date" in explicit):
+            print("❌ Cannot use --view together with --start-date or --end-date.")
+            parser.print_help()
+            sys.exit(1)
+
+        # --- must specify at least one selector ---
+        if (
+            "view" not in explicit
+            and "start_date" not in explicit
+            and args.view is None
+            and args.start_date is None
+        ):
+            print("❌ One of --view or --start-date is required for sleep summary.")
+            parser.print_help()
+            sys.exit(1)

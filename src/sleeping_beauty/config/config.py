@@ -70,9 +70,20 @@ class Config(metaclass=SingletonMeta):
             )
             self._oura_redirect_uri = args.redirect_uri
 
+        # --------------------------------------------
+        # Sleep overrides
+        # --------------------------------------------
         if _was_explicit(args, "view"):
-            print(f"[Config] Overriding view from CLI: {args.view}")
+            print(f"[Config] Overriding sleep.view from CLI: {args.view}")
             self.sleep_view = args.view
+
+        if _was_explicit(args, "start_date"):
+            print(f"[Config] Overriding sleep.start_date from CLI: {args.start_date}")
+            self.sleep_start_date = args.start_date
+
+        if _was_explicit(args, "end_date"):
+            print(f"[Config] Overriding sleep.end_date from CLI: {args.end_date}")
+            self.sleep_end_date = args.end_date
 
     def _load_sleep_section(self, data: dict) -> None:
         if not data:
@@ -299,7 +310,8 @@ class Config(metaclass=SingletonMeta):
         """
         return self._sleep_start_date
 
-    def set_sleep_start_date(self, value: Optional[str]) -> None:
+    @sleep_start_date.setter
+    def sleep_start_date(self, value: Optional[str]) -> None:
         self._sleep_start_date = value
 
     # --------------------------------------------
@@ -312,7 +324,8 @@ class Config(metaclass=SingletonMeta):
         """
         return self._sleep_end_date
 
-    def set_sleep_end_date(self, value: Optional[str]) -> None:
+    @sleep_end_date.setter
+    def sleep_end_date(self, value: Optional[str]) -> None:
         self._sleep_end_date = value
 
     def print_config_info(self):
