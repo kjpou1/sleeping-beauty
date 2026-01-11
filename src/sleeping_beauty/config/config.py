@@ -43,8 +43,8 @@ class Config(metaclass=SingletonMeta):
         self._oura_scopes: list[str] = ["daily", "personal"]  # safe default
 
         self._sleep_view: Optional[str] = None
-        self._sleep_start_date: Optional[str] = None
-        self._sleep_end_date: Optional[str] = None
+        self._start_date: Optional[str] = None
+        self._end_date: Optional[str] = None
 
         Config._is_initialized = True
 
@@ -79,11 +79,11 @@ class Config(metaclass=SingletonMeta):
 
         if _was_explicit(args, "start_date"):
             print(f"[Config] Overriding sleep.start_date from CLI: {args.start_date}")
-            self.sleep_start_date = args.start_date
+            self.start_date = args.start_date
 
         if _was_explicit(args, "end_date"):
             print(f"[Config] Overriding sleep.end_date from CLI: {args.end_date}")
-            self.sleep_end_date = args.end_date
+            self.end_date = args.end_date
 
     def _load_sleep_section(self, data: dict) -> None:
         if not data:
@@ -99,21 +99,21 @@ class Config(metaclass=SingletonMeta):
                 f"[Config] Overriding 'view': "
                 f"{self._sleep_view} → {sleep_cfg.get("view")}"
             )
-            self.set_sleep_view(sleep_cfg.get("view"))
+            self.sleep_view = sleep_cfg.get("view")
 
         if "start_date" in sleep_cfg:
             print(
                 f"[Config] Overriding 'sleep.start_date': "
-                f"{self._sleep_start_date} → {sleep_cfg.get('start_date')}"
+                f"{self._start_date} → {sleep_cfg.get('start_date')}"
             )
-            self.set_sleep_start_date(sleep_cfg.get("start_date"))
+            self.start_date = sleep_cfg.get("start_date")
 
         if "end_date" in sleep_cfg:
             print(
                 f"[Config] Overriding 'sleep.end_date': "
-                f"{self._sleep_end_date} → {sleep_cfg.get('end_date')}"
+                f"{self._end_date} → {sleep_cfg.get('end_date')}"
             )
-            self.set_sleep_end_date(sleep_cfg.get("end_date"))
+            self.end_date = sleep_cfg.get("end_date")
 
     def load_from_yaml(self, path: str):
         """
@@ -301,32 +301,32 @@ class Config(metaclass=SingletonMeta):
         self._sleep_view = value
 
     # --------------------------------------------
-    # Sleep: start_date
+    # start_date
     # --------------------------------------------
     @property
-    def sleep_start_date(self) -> Optional[str]:
+    def start_date(self) -> Optional[str]:
         """
-        Sleep summary start date (YYYY-MM-DD).
+        start date (YYYY-MM-DD).
         """
-        return self._sleep_start_date
+        return self._start_date
 
-    @sleep_start_date.setter
-    def sleep_start_date(self, value: Optional[str]) -> None:
-        self._sleep_start_date = value
+    @start_date.setter
+    def start_date(self, value: Optional[str]) -> None:
+        self._start_date = value
 
     # --------------------------------------------
-    # Sleep: end_date
+    # end_date
     # --------------------------------------------
     @property
-    def sleep_end_date(self) -> Optional[str]:
+    def end_date(self) -> Optional[str]:
         """
         Sleep summary end date (YYYY-MM-DD).
         """
-        return self._sleep_end_date
+        return self._end_date
 
-    @sleep_end_date.setter
-    def sleep_end_date(self, value: Optional[str]) -> None:
-        self._sleep_end_date = value
+    @end_date.setter
+    def end_date(self, value: Optional[str]) -> None:
+        self._end_date = value
 
     def print_config_info(self):
         print("=" * 50)

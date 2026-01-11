@@ -23,8 +23,8 @@ class SleepContextBuilder:
     def build(self) -> SleepContext:
         config = Config()
         view = config.sleep_view
-        start_raw = config.sleep_start_date
-        end_raw = config.sleep_end_date
+        start_raw = config.start_date
+        end_raw = config.end_date
         divider = getattr(config, "sleep_divider", False)
 
         # -------------------------------------------------
