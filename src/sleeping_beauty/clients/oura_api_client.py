@@ -7,6 +7,10 @@ from typing import Callable, Iterable, NoReturn, Optional
 import httpx
 
 from sleeping_beauty.clients.oura_endpoints import session as session_endpoints
+from sleeping_beauty.clients.oura_endpoints.daily_readiness import (
+    parse_daily_readiness_item,
+    parse_daily_readiness_page,
+)
 from sleeping_beauty.clients.oura_endpoints.daily_sleep_score import (
     parse_daily_sleep_score_item,
     parse_daily_sleep_score_page,
@@ -28,6 +32,7 @@ from sleeping_beauty.clients.oura_errors import (
     OuraRateLimitError,
     OuraServerError,
 )
+from sleeping_beauty.models.oura.daily_readiness import DailyReadinessScore
 from sleeping_beauty.models.oura.daily_sleep_score import DailySleepScore
 from sleeping_beauty.models.oura.heartrate import HeartRateSample
 from sleeping_beauty.models.oura.page import Page
@@ -677,3 +682,135 @@ class OuraApiClient:
             ]
 
         return iter(self._run(_collect()))
+
+    # ---------------------------------------------------------------------
+    # Public API — Daily Readiness Scores
+    # ---------------------------------------------------------------------
+
+    async def get_daily_readiness_score_page(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        next_token: str | None = None,
+    ) -> Page[DailyReadinessScore]:
+        """
+        Fetch one page of daily readiness score summaries.
+
+        GET /v2/usercollection/daily_readiness
+        """
+        params: dict[str, str] = {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+        if next_token:
+            params["next_token"] = next_token
+
+        payload = await self._request_async(
+            method="GET",
+            path="/v2/usercollection/daily_readiness",
+            params=params,
+        )
+
+        return parse_daily_readiness_page(payload)
+
+    async def iter_daily_readiness_scores(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ):
+        """
+        Iterate over all DailyReadinessScore records in the given date range.
+        """
+        token: str | None = None
+
+        while True:
+            page = await self.get_daily_readiness_score_page(
+                start_date=start_date,
+                end_date=end_date,
+                next_token=token,
+            )
+
+            for item in page.data:
+                yield item
+
+            if not page.next_token:
+                break
+
+            token = page.next_token
+
+    def get_daily_readiness_score_page_sync(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        next_token: str | None = None,
+    ) -> Page[DailyReadinessScore]:
+        """
+        Synchronous wrapper around get_daily_readiness_score_page().
+        """
+        return self._run(
+            self.get_daily_readiness_score_page(
+                start_date=start_date,
+                end_date=end_date,
+                next_token=next_token,
+            )
+        )
+
+    def iter_daily_readiness_scores_sync(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ):
+        """
+        Synchronous wrapper around iter_daily_readiness_scores().
+        """
+
+        async def _collect():
+            return [
+                item
+                async for item in self.iter_daily_readiness_scores(
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            ]
+
+        return iter(self._run(_collect()))
+
+    # ---------------------------------------------------------------------
+    # Public API — Daily Readiness Scores (Single Document)
+    # ---------------------------------------------------------------------
+
+    async def get_daily_readiness_score(
+        self,
+        *,
+        document_id: str,
+    ) -> DailyReadinessScore:
+        """
+        Fetch a single daily readiness score document by ID.
+
+        GET /v2/usercollection/daily_readiness/{document_id}
+        """
+        if not document_id:
+            raise ValueError("document_id must be a non-empty string")
+
+        payload = await self._request_async(
+            method="GET",
+            path=f"/v2/usercollection/daily_readiness/{document_id}",
+            params=None,
+        )
+
+        # Single-document endpoint returns the document itself
+        return parse_daily_readiness_item(payload)
+
+    def get_daily_readiness_score_sync(
+        self,
+        *,
+        document_id: str,
+    ) -> DailyReadinessScore:
+        """
+        Synchronous wrapper around get_daily_readiness_score().
+        """
+        return self._run(self.get_daily_readiness_score(document_id=document_id))
