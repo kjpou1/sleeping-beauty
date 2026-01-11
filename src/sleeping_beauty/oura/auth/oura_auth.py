@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import secrets
-import time
 import webbrowser
+from datetime import datetime, timezone
 from typing import Iterable
 from urllib.parse import urlencode
 
+from sleeping_beauty.config.config import Config
 from sleeping_beauty.oura.auth.domain.scopes import OURA_SCOPE_ALIASES
 
 from .callback_server import OAuthCallbackServer
@@ -65,6 +66,111 @@ class OuraAuth:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+    @classmethod
+    def from_config(cls, config: Config | None = None) -> "OuraAuth":
+        """
+        Construct OuraAuth from application Config.
+
+        This is the canonical construction path for:
+        - CLI
+        - notebooks
+        - integration tests
+        """
+        cfg = config or Config()
+
+        token_storage = FileTokenStorage(cfg.oura_token_path)
+
+        return cls(
+            client_id=cfg.oura_client_id,
+            client_secret=cfg.oura_client_secret,
+            redirect_uri=cfg.oura_redirect_uri,
+            scopes=cfg.oura_scopes,
+            token_storage=token_storage,
+        )
+
+    def preflight_check(self, *, verbose: bool = True) -> bool:
+        """
+        Perform a non-destructive preflight check of Oura OAuth configuration
+        and current token state.
+
+        This is a best-effort diagnostic intended for humans (CLI / notebook),
+        not an authoritative validation and not a connectivity test.
+
+        Returns True if the setup appears usable, False if a clear problem
+        is detected.
+        """
+        ok = True
+
+        def log(msg: str):
+            if verbose:
+                print(msg)
+
+        log("🔐 Oura Auth Preflight Check")
+        log("-" * 40)
+
+        # --- Config checks ---
+        if not self._client_id:
+            log("❌ Missing client_id")
+            ok = False
+        else:
+            log("✅ client_id present")
+
+        if not self._client_secret:
+            log("❌ Missing client_secret")
+            ok = False
+        else:
+            log("✅ client_secret present")
+
+        if not self._redirect_uri:
+            log("❌ Missing redirect_uri")
+            ok = False
+        else:
+            log(f"✅ redirect_uri: {self._redirect_uri}")
+
+        if not self._scopes:
+            log("❌ No scopes configured")
+            ok = False
+        else:
+            log(f"✅ requested scopes: {sorted(self._scopes)}")
+
+        # --- Token checks ---
+        token = self._storage.load()
+        if not token:
+            log("⚠️  No stored token found (OAuth flow will be required)")
+            return ok  # config may still be valid
+
+        log("✅ token found in storage")
+
+        expires_at = getattr(token, "expires_at", None)
+        if expires_at:
+            expiry = datetime.fromtimestamp(expires_at, tz=timezone.utc)
+            now = datetime.now(tz=timezone.utc)
+
+            if expiry <= now:
+                log("❌ token is expired")
+                ok = False
+            else:
+                remaining = (expiry - now).total_seconds()
+                log(f"✅ token valid for ~{int(remaining // 60)} minutes")
+        else:
+            log("⚠️  token has no expires_at field")
+
+        # --- Scope coverage ---
+        token_scopes_raw = getattr(token, "scope", None)
+        if token_scopes_raw:
+            token_scopes = set(token_scopes_raw.split())
+            missing = self._scopes - token_scopes
+            if missing:
+                log(f"⚠️  token missing scopes: {sorted(missing)}")
+            else:
+                log("✅ token covers requested scopes")
+        else:
+            log("⚠️  token has no scope information")
+
+        log("-" * 40)
+        log("✔️  Preflight check complete")
+
+        return ok
 
     def get_access_token(self) -> str:
         """

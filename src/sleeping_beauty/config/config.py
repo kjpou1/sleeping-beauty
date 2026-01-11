@@ -40,6 +40,7 @@ class Config(metaclass=SingletonMeta):
         self._oura_client_id = None
         self._oura_client_secret = None
         self._oura_token_path = Path("~/.sleeping_beauty/oura_token.json").expanduser()
+        self._oura_scopes: list[str] = ["daily", "personal"]  # safe default
 
         Config._is_initialized = True
 
@@ -54,6 +55,16 @@ class Config(metaclass=SingletonMeta):
         if _was_explicit(args, "debug"):
             print(f"[Config] Overriding 'debug' from CLI: {args.debug}")
             self.debug = args.debug
+
+        if _was_explicit(args, "scopes"):
+            print(f"[Config] Overriding Oura scopes from CLI: {args.scopes}")
+            self._oura_scopes = args.scopes
+
+        if _was_explicit(args, "redirect_uri"):
+            print(
+                f"[Config] Overriding Oura redirect_uri from CLI: {args.redirect_uri}"
+            )
+            self._oura_redirect_uri = args.redirect_uri
 
     def load_from_yaml(self, path: str):
         """
@@ -90,6 +101,20 @@ class Config(metaclass=SingletonMeta):
 
         if "token_path" in oura_cfg:
             self.oura_token_path = oura_cfg["token_path"]
+
+        if "scopes" in oura_cfg:
+            scopes = oura_cfg["scopes"]
+            if not isinstance(scopes, list) or not all(
+                isinstance(s, str) for s in scopes
+            ):
+                raise ValueError("auth.oura.scopes must be a list of strings")
+            self._oura_scopes = scopes
+
+        if "redirect_uri" in oura_cfg:
+            uri = oura_cfg["redirect_uri"]
+            if uri is not None and not isinstance(uri, str):
+                raise ValueError("auth.oura.redirect_uri must be a string or null")
+            self._oura_redirect_uri = uri
 
     @property
     def config_path(self):
@@ -175,16 +200,47 @@ class Config(metaclass=SingletonMeta):
         path = Path(value).expanduser()
         self._oura_token_path = path
 
+    @property
+    def oura_scopes(self) -> set[str]:
+        """
+        Oura OAuth scopes (human-facing, e.g. {'daily', 'personal'}).
+
+        Precedence:
+        1. YAML config
+        2. CLI override
+        3. Defaults
+        """
+        return set(self._oura_scopes)
+
+    @property
+    def oura_redirect_uri(self) -> str:
+        """
+        Oura OAuth redirect URI.
+
+        Precedence:
+        1. YAML config
+        2. Environment variable OURA_REDIRECT_URI
+        3. Default localhost callback
+        """
+        return (
+            self._oura_redirect_uri
+            or os.getenv("OURA_REDIRECT_URI")
+            or "http://localhost:8400/callback"
+        )
+
     def print_config_info(self):
         print("=" * 50)
         print("📂 Configuration")
         print("-" * 50)
+        print(f"{'Configuration file:':25} {self.config_path}")
         print("-" * 50)
         print("🔐 Auth / Oura")
         print("-" * 50)
         print(f"{'Token path:':25} {self.oura_token_path}")
         print(f"{'Client ID set:':25} {bool(self.oura_client_id)}")
         print(f"{'Client Secret set:':25} {bool(self.oura_client_secret)}")
+        print(f"{'Redirect URI:':25} {self.oura_redirect_uri}")
+        print(f"{'Scopes:':25} {sorted(self.oura_scopes)}")
 
         # print(f"{'Datasets/raw dir:':25} {self.DATASETS_RAW_DIR}")
         # print(f"{'Datasets/processed dir:':25} {self.DATASETS_PROCESSED_DIR}")

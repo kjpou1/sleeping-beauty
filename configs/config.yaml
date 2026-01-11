@@ -8,3 +8,7 @@ auth:
     client_id: null
     client_secret: null
     token_path: "~/.sleeping_beauty/oura_token.json"
+    redirect_uri: "http://localhost:8400/callback"
+    scopes:
+      - daily
+      - personal

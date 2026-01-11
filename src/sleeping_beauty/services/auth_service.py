@@ -28,10 +28,6 @@ class AuthService:
       - revoke
     """
 
-    DEFAULT_TOKEN_PATH = "~/.sleeping_beauty/oura_token.json"
-    DEFAULT_REDIRECT_URI = "http://localhost:8400/callback"
-    DEFAULT_SCOPES = {"daily", "session"}
-
     # ------------------------------------------------------------------
     # Construction
     # ------------------------------------------------------------------
@@ -55,16 +51,14 @@ class AuthService:
         logger.debug("Initializing AuthService")
 
         self._storage = FileTokenStorage(
-            path=Path(
-                self.config.oura_token_path or self.DEFAULT_TOKEN_PATH
-            ).expanduser()
+            path=Path(self.config.oura_token_path).expanduser()
         )
 
         self._auth = OuraAuth(
             client_id=self.config.oura_client_id,
             client_secret=self.config.oura_client_secret,
-            redirect_uri=redirect_uri or self.DEFAULT_REDIRECT_URI,
-            scopes=set(scopes or self.DEFAULT_SCOPES),
+            redirect_uri=self.config.oura_redirect_uri,
+            scopes=self.config.oura_scopes,
             token_storage=self._storage,
         )
 
