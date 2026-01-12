@@ -7,6 +7,7 @@ from typing import Iterable
 from urllib.parse import urlencode
 
 from sleeping_beauty.config.config import Config
+from sleeping_beauty.oura.auth.domain.auth_preflight_result import AuthPreflightReport
 from sleeping_beauty.oura.auth.domain.scopes import OURA_SCOPE_ALIASES
 
 from .callback_server import OAuthCallbackServer
@@ -88,58 +89,58 @@ class OuraAuth:
             token_storage=token_storage,
         )
 
-    def preflight_check(self, *, verbose: bool = True) -> bool:
+    def preflight_check(self) -> AuthPreflightReport:
         """
         Perform a non-destructive preflight check of Oura OAuth configuration
         and current token state.
 
-        This is a best-effort diagnostic intended for humans (CLI / notebook),
-        not an authoritative validation and not a connectivity test.
-
-        Returns True if the setup appears usable, False if a clear problem
-        is detected.
+        Returns a PreflightResult containing:
+        - ok: whether the setup appears usable
+        - messages: human-readable diagnostic lines
         """
         ok = True
+        messages: list[str] = []
 
-        def log(msg: str):
-            if verbose:
-                print(msg)
+        def add(msg: str):
+            messages.append(msg)
 
-        log("🔐 Oura Auth Preflight Check")
-        log("-" * 40)
+        add("🔐 Oura Auth Preflight Check")
+        add("-" * 40)
 
         # --- Config checks ---
         if not self._client_id:
-            log("❌ Missing client_id")
+            add("❌ Missing client_id")
             ok = False
         else:
-            log("✅ client_id present")
+            add("✅ client_id present")
 
         if not self._client_secret:
-            log("❌ Missing client_secret")
+            add("❌ Missing client_secret")
             ok = False
         else:
-            log("✅ client_secret present")
+            add("✅ client_secret present")
 
         if not self._redirect_uri:
-            log("❌ Missing redirect_uri")
+            add("❌ Missing redirect_uri")
             ok = False
         else:
-            log(f"✅ redirect_uri: {self._redirect_uri}")
+            add(f"✅ redirect_uri: {self._redirect_uri}")
 
         if not self._scopes:
-            log("❌ No scopes configured")
+            add("❌ No scopes configured")
             ok = False
         else:
-            log(f"✅ requested scopes: {sorted(self._scopes)}")
+            add(f"✅ requested scopes: {sorted(self._scopes)}")
 
         # --- Token checks ---
         token = self._storage.load()
         if not token:
-            log("⚠️  No stored token found (OAuth flow will be required)")
-            return ok  # config may still be valid
+            add("⚠️  No stored token found (OAuth flow will be required)")
+            add("-" * 40)
+            add("✔️  Preflight check complete")
+            return AuthPreflightReport(ok=ok, messages=messages)
 
-        log("✅ token found in storage")
+        add("✅ token found in storage")
 
         expires_at = getattr(token, "expires_at", None)
         if expires_at:
@@ -147,13 +148,13 @@ class OuraAuth:
             now = datetime.now(tz=timezone.utc)
 
             if expiry <= now:
-                log("❌ token is expired")
+                add("❌ token is expired")
                 ok = False
             else:
-                remaining = (expiry - now).total_seconds()
-                log(f"✅ token valid for ~{int(remaining // 60)} minutes")
+                remaining = int((expiry - now).total_seconds() // 60)
+                add(f"✅ token valid for ~{remaining} minutes")
         else:
-            log("⚠️  token has no expires_at field")
+            add("⚠️  token has no expires_at field")
 
         # --- Scope coverage ---
         token_scopes_raw = getattr(token, "scope", None)
@@ -161,16 +162,16 @@ class OuraAuth:
             token_scopes = set(token_scopes_raw.split())
             missing = self._scopes - token_scopes
             if missing:
-                log(f"⚠️  token missing scopes: {sorted(missing)}")
+                add(f"⚠️  token missing scopes: {sorted(missing)}")
             else:
-                log("✅ token covers requested scopes")
+                add("✅ token covers requested scopes")
         else:
-            log("⚠️  token has no scope information")
+            add("⚠️  token has no scope information")
 
-        log("-" * 40)
-        log("✔️  Preflight check complete")
+        add("-" * 40)
+        add("✔️  Preflight check complete")
 
-        return ok
+        return AuthPreflightReport(ok=ok, messages=messages)
 
     def get_access_token(self) -> str:
         """
