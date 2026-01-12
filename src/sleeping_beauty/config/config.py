@@ -45,6 +45,7 @@ class Config(metaclass=SingletonMeta):
         self._sleep_view: Optional[str] = None
         self._start_date: Optional[str] = None
         self._end_date: Optional[str] = None
+        self._divider: bool = False
 
         Config._is_initialized = True
 
@@ -85,6 +86,10 @@ class Config(metaclass=SingletonMeta):
             print(f"[Config] Overriding sleep.end_date from CLI: {args.end_date}")
             self.end_date = args.end_date
 
+        if _was_explicit(args, "divider"):
+            print(f"[Config] Overriding divider from CLI: {args.divider}")
+            self.divider = args.divider
+
     def _load_sleep_section(self, data: dict) -> None:
         if not data:
             return
@@ -114,6 +119,14 @@ class Config(metaclass=SingletonMeta):
                 f"{self._end_date} → {sleep_cfg.get('end_date')}"
             )
             self.end_date = sleep_cfg.get("end_date")
+
+        # --- Divider (output formatting) ---
+        if "divider" in sleep_cfg:
+            value = sleep_cfg["divider"]
+            if not isinstance(value, bool):
+                raise ValueError("divider must be a boolean")
+            print(f"[Config] Overriding 'divider': " f"{self._divider} → {value}")
+            self.divider = value
 
     def load_from_yaml(self, path: str):
         """
@@ -327,6 +340,26 @@ class Config(metaclass=SingletonMeta):
     @end_date.setter
     def end_date(self, value: Optional[str]) -> None:
         self._end_date = value
+
+    # --------------------------------------------
+    # divider (output formatting)
+    # --------------------------------------------
+    @property
+    def divider(self) -> bool:
+        """
+        Whether to print a divider between multi-day outputs.
+        """
+        return self._divider
+
+    @divider.setter
+    def divider(self, value: bool) -> None:
+        if not isinstance(value, bool):
+            raise ValueError("divider must be a boolean")
+
+        if self._divider != value:
+            print(f"[Config] Setting 'divider': {self._divider} → {value}")
+
+        self._divider = value
 
     def print_config_info(self):
         print("=" * 50)

@@ -18,3 +18,4 @@ auth:
 
 sleep:
   #view: week
+  divider: yes
