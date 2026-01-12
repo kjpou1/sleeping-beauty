@@ -18,7 +18,9 @@ async def build_sleep_day_snapshot(
     readiness,
 ) -> SleepDaySnapshot:
     core = select_core_sleep(sleep_docs, target_day)
-    supplemental, supplemental_seconds = compute_supplemental_sleep(sleep_docs, core)
+    supplemental, supplemental_seconds = compute_supplemental_sleep(
+        sleep_docs, core, target_day
+    )
 
     total_24h = (core.total_sleep_duration or 0) + supplemental_seconds
 
@@ -94,11 +96,23 @@ def is_night_sleep(doc) -> bool:
 # ================================================================
 
 
-def compute_supplemental_sleep(sleep_docs, core_sleep):
+def compute_supplemental_sleep(
+    sleep_docs,
+    core_sleep,
+    target_day: date,
+):
+    """
+    Supplemental sleep = any non-core sleep episode
+    that ENDS on target_day.
+    """
     supplemental = [
         d
         for d in sleep_docs
-        if d.id != core_sleep.id and (d.total_sleep_duration or 0) > 0
+        if (
+            d.day == target_day
+            and d.id != core_sleep.id
+            and (d.total_sleep_duration or 0) > 0
+        )
     ]
 
     total_seconds = sum(d.total_sleep_duration or 0 for d in supplemental)
