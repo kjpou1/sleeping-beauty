@@ -157,8 +157,8 @@ class SleepSummaryService:
         """
 
         print(
-            f"""🛏️ Sleep Summary — {s.day}
-    Night: {s.night_start:%b %d} → {s.night_end:%b %d}
+            f"""🛏️ Sleep Summary — {s.day:%A, %b %-d, %Y}\n
+    Night: {s.night_start:%a %b %-d} → {s.night_end:%a %b %-d}
 
     Core overnight sleep:
     Total sleep: {self._seconds_to_hm(s.core_sleep_seconds)}

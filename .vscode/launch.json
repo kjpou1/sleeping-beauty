@@ -57,10 +57,10 @@
         "summary",
         "--config",
         "configs/config.yaml",
-        // "--view",
-        // "yesterday"
-        "--start-date",
-        "2026-01-09"
+        "--view",
+        "month"
+        // "--start-date",
+        // "2026-01-09"
       ],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}"
