@@ -105,7 +105,7 @@ class AuthService:
 
         Intended for thin callers (CLI, host, automation).
         """
-        logger.debug("AuthService dispatch command=%s", command)
+        logger.debug("AuthService dispatch command={}", command)
 
         if command == "login":
             self.login()
@@ -114,5 +114,5 @@ class AuthService:
         elif command == "revoke":
             self.revoke()
         else:
-            logger.error("Unknown auth command: %s", command)
+            logger.error("Unknown auth command: {}", command)
             raise ValueError(f"Unknown auth command: {command}")
