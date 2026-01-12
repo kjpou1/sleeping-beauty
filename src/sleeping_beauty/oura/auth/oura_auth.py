@@ -91,12 +91,16 @@ class OuraAuth:
 
     def preflight_check(self) -> AuthPreflightReport:
         """
-        Perform a non-destructive preflight check of Oura OAuth configuration
-        and current token state.
+        Perform a non-destructive preflight check of Oura OAuth configuration.
+
+        This checks whether authentication is *possible* (configuration present),
+        not whether the user is currently authenticated.
+
+        A missing or expired token is reported as a warning, not an error.
 
         Returns a PreflightResult containing:
-        - ok: whether the setup appears usable
-        - messages: human-readable diagnostic lines
+            - ok: whether the setup appears usable
+            - messages: human-readable diagnostic lines
         """
         ok = True
         messages: list[str] = []
