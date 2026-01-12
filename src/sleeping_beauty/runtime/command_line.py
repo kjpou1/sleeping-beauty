@@ -61,6 +61,34 @@ class CommandLine:
             "--debug", action="store_true", help="Enable debug logging"
         )
 
+        # -------------------
+        # sleep journal
+        # -------------------
+        sleep_journal = sleep_subparsers.add_parser(
+            "journal", help="Journal-style view of Oura sleep data"
+        )
+
+        sleep_journal.add_argument(
+            "--view",
+            choices=["today", "yesterday", "week", "month"],
+            help="Calendar-based view",
+        )
+        sleep_journal.add_argument(
+            "--start-date", type=str, help="Start date (YYYY-MM-DD)"
+        )
+        sleep_journal.add_argument("--end-date", type=str, help="End date (YYYY-MM-DD)")
+        sleep_journal.add_argument(
+            "--divider",
+            action="store_true",
+            help="Print divider between days",
+        )
+        sleep_journal.add_argument(
+            "--config", type=str, help="Path to YAML config file"
+        )
+        sleep_journal.add_argument(
+            "--debug", action="store_true", help="Enable debug logging"
+        )
+
         # ===================================================
         # Parse args
         # ===================================================
@@ -111,6 +139,7 @@ class CommandLine:
             ("auth", "status"): auth_status,
             ("auth", "revoke"): auth_revoke,
             ("sleep", "summary"): sleep_summary,
+            ("sleep", "journal"): sleep_journal,
         }
 
         collect_explicit_args(parser_registry.get((args.command, subcommand)))
@@ -142,13 +171,6 @@ class CommandLine:
     # ---------------------------------------------------
     # Validation helpers
     # ---------------------------------------------------
-    # @staticmethod
-    # def _validate_hic_svnt_args(args, parser):
-    #     if getattr(args, "config", None) is None:
-    #         print("❌ The `hic-svnt` command requires --config.")
-    #         parser.print_help()
-    #         sys.exit(1)
-
     @staticmethod
     def _validate_sleep_args(args, parser):
         """
@@ -156,14 +178,13 @@ class CommandLine:
         Operates on argparse.Namespace (NOT CommandLineArgs).
         """
 
-        # Resolve subcommand from argparse namespace
         subcommand = getattr(args, "sleep_command", None)
 
         if subcommand is None:
             parser.print_help()
             sys.exit(1)
 
-        if subcommand != "summary":
+        if subcommand not in {"summary", "journal"}:
             print(f"❌ Unknown sleep subcommand: {subcommand}")
             parser.print_help()
             sys.exit(1)
@@ -183,6 +204,8 @@ class CommandLine:
             and args.view is None
             and args.start_date is None
         ):
-            print("❌ One of --view or --start-date is required for sleep summary.")
+            print(
+                f"❌ One of --view or --start-date is required for sleep {subcommand}."
+            )
             parser.print_help()
             sys.exit(1)

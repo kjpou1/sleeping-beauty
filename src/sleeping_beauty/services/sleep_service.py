@@ -1,6 +1,7 @@
+from sleeping_beauty.core.sleep.sleep_context_builder import SleepContextBuilder
 from sleeping_beauty.logsys.logger_manager import LoggerManager
 from sleeping_beauty.models.sleep_context import SleepContext
-from sleeping_beauty.core.sleep.sleep_context_builder import SleepContextBuilder
+from sleeping_beauty.services.sleep_journal_service import SleepJournalService
 from sleeping_beauty.services.sleep_summary_service import SleepSummaryService
 
 logger = LoggerManager.get_logger(__name__)
@@ -31,7 +32,12 @@ class SleepService:
         if subcommand == "summary":
             service = SleepSummaryService()
             await service.run(sleep_context)
+        elif subcommand == "journal":
+            service = SleepJournalService()
+            await service.run(sleep_context)
 
         else:
             logger.error(f"❌ Unknown sleep subcommand: {subcommand}")
-            raise ValueError("Unsupported sleep subcommand. Valid option: 'summary'.")
+            raise ValueError(
+                "Unsupported sleep subcommand. Valid options: 'summary', 'journal'."
+            )

@@ -56,7 +56,7 @@ class Host:
         """
         Dispatch sleep-related subcommands.
         """
-        if self.args.subcommand == "summary":
+        if self.args.subcommand in ["summary", "journal"]:
             service = SleepService()
             await service.run(self.args.subcommand)
 
