@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, Tuple
+
+from sleeping_beauty.core.sleep.sleep_timeline import SleepStageTimeline
+from sleeping_beauty.core.sleep.supplemental_sleep_episode import (
+    SupplementalSleepEpisode,
+)
 
 
 @dataclass(frozen=True)
@@ -33,3 +38,8 @@ class SleepDaySnapshot:
     readiness_score: int
     timing_score: int
     timing_label: str
+
+    # --- Observational timeline ---
+    timeline: Optional[SleepStageTimeline] = None
+    # --- Supplemental episodes ---
+    supplemental_episodes: Tuple[SupplementalSleepEpisode, ...] = ()

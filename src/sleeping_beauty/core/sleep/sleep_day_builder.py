@@ -4,6 +4,10 @@ from datetime import date, time, timedelta
 from typing import Optional
 
 from sleeping_beauty.core.sleep.sleep_day_snapshot import SleepDaySnapshot
+from sleeping_beauty.core.sleep.sleep_timeline_builder import (
+    build_sleep_stage_timeline,
+    build_supplemental_sleep_episodes,
+)
 
 # ================================================================
 # Public API
@@ -30,6 +34,12 @@ async def build_sleep_day_snapshot(
         This fixes month boundary cases (e.g., Jan 1 should show Dec 31 → Jan 1).
     """
     core_sleep = select_core_sleep(sleep_docs, target_day)
+
+    supplemental_episodes = build_supplemental_sleep_episodes(
+        sleep_docs=sleep_docs,
+        core_sleep_id=core_sleep.id,
+        target_day=target_day,
+    )
 
     supplemental_seconds = compute_supplemental_sleep_seconds(
         sleep_docs=sleep_docs,
@@ -58,6 +68,27 @@ async def build_sleep_day_snapshot(
     night_start = core_sleep.bedtime_start
     night_end = core_sleep.bedtime_end
 
+    # -------------------------------------------------
+    # Timeline construction
+    # -------------------------------------------------
+    timeline = build_sleep_stage_timeline(core_sleep)
+
+    # -------------------------------------------------
+    # Invariant check (NOW valid)
+    # -------------------------------------------------
+    if timeline and timeline.segments:
+        timeline_end = timeline.segments[-1].end
+        delta = timeline_end - night_end
+
+        if delta.total_seconds() < 0 or delta.total_seconds() >= 300:
+            raise RuntimeError(
+                "Sleep timeline invariant violated: "
+                f"timeline_end={timeline_end!r} "
+                f"night_end={night_end!r} "
+                f"delta={delta.total_seconds()}s "
+                f"(day={target_day}, sleep_id={core_sleep.id})"
+            )
+
     return SleepDaySnapshot(
         day=target_day,
         night_start=night_start,
@@ -82,6 +113,8 @@ async def build_sleep_day_snapshot(
         readiness_score=getattr(readiness, "score", 0) or 0,
         timing_score=timing_score,
         timing_label=timing_label,
+        timeline=timeline,
+        supplemental_episodes=supplemental_episodes,
     )
 
 

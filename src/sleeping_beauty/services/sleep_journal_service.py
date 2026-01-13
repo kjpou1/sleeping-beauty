@@ -150,6 +150,12 @@ class SleepJournalService:
         No interpretation or aggregation is introduced here.
         """
 
+        supplemental_episode_block = ""
+        if s.supplemental_episodes:
+            supplemental_episode_block = "\n" + self._render_supplemental_episodes(s)
+
+        timeline_block = self._render_sleep_timeline(s)
+
         print(
             f"""🛏️ Sleep Journal — {s.day:%A, %b %-d, %Y}
 
@@ -157,10 +163,11 @@ class SleepJournalService:
     {s.night_start:%a %b %-d %H:%M} → {s.night_end:%a %b %-d %H:%M}
 
     Sleep observed:
-    • Core overnight sleep: {self._seconds_to_hm(s.core_sleep_seconds)}
-    • Supplemental sleep: {self._seconds_to_hm(s.supplemental_sleep_seconds)}
+    • Core overnight sleep: {self._seconds_to_hm(s.core_sleep_seconds)} ({self._format_time_range(s.night_start, s.night_end)})
+    • Supplemental sleep: {self._seconds_to_hm(s.supplemental_sleep_seconds)}{supplemental_episode_block}
     • Total sleep (24h): {self._seconds_to_hm(s.total_sleep_24h_seconds)}
 
+    {timeline_block}
     Sleep process:
     • Sleep efficiency: {s.efficiency_pct} %
     • Time in bed: {self._seconds_to_hm(s.time_in_bed_seconds)}
@@ -209,16 +216,41 @@ No sleep data available for this day.
 """
         )
 
-    # -------------------------------------------------
-    # Presentation helpers (IDENTICAL to summary)
-    # -------------------------------------------------
+    def _format_time_range(self, start, end) -> str:
+        return f"{start:%H:%M} - {end:%H:%M}"
 
-    def _seconds_to_hm(self, seconds: Optional[int]) -> str:
-        if not seconds or seconds <= 0:
-            return "0h 00m"
-        h = seconds // 3600
-        m = (seconds % 3600) // 60
-        return f"{h}h {m:02d}m"
+    def _render_supplemental_episodes(self, s: SleepDaySnapshot) -> str:
+        """
+        Render supplemental (nap) episodes as bullet lines only.
+
+        Assumes:
+        - Total duration is already rendered elsewhere
+        """
+        if not s.supplemental_episodes:
+            return ""
+
+        lines = []
+        for ep in s.supplemental_episodes:
+            duration_min = ep.duration_seconds // 60
+            lines.append(f"      • {ep.start:%H:%M}–{ep.end:%H:%M} ({duration_min}m)")
+
+        return "\n".join(lines)
+
+    def _render_sleep_timeline(self, s: SleepDaySnapshot) -> str:
+        if not s.timeline:
+            return "Sleep timeline: unavailable\n"
+
+        lines = ["Sleep timeline:"]
+
+        for seg in s.timeline.segments:
+            if seg.stage == "rem":
+                stage = "REM"
+            else:
+                stage = seg.stage.value.capitalize()
+            end = min(seg.end, s.night_end)
+            lines.append(f"      • {seg.start:%H:%M}–{end:%H:%M}  {stage}")
+
+        return "\n".join(lines) + "\n"
 
     # -------------------------------------------------
     # Presentation helpers (rendering concerns only)

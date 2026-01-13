@@ -31,6 +31,7 @@ from sleeping_beauty.clients.oura_errors import OuraAuthError
 from sleeping_beauty.config.config import Config
 from sleeping_beauty.core.sleep.sleep_day_provider import SleepDayProvider
 from sleeping_beauty.core.sleep.sleep_day_snapshot import SleepDaySnapshot
+from sleeping_beauty.core.sleep.sleep_stage import SleepStage
 from sleeping_beauty.logsys.logger_manager import LoggerManager
 from sleeping_beauty.models.sleep_context import SleepContext
 from sleeping_beauty.oura.auth.domain.auth_preflight_result import AuthPreflightReport
@@ -147,25 +148,21 @@ class SleepSummaryService:
             self._render_snapshot(snapshot)
 
     def _render_snapshot(self, s: SleepDaySnapshot) -> None:
-        """
-        Render a SleepDaySnapshot to human-readable text.
+        awake_block = self._render_awake_periods(s)
 
-        Assumes:
-        - Snapshot is complete and internally consistent
-        - All values are normalized and derived
-        - No further computation is required
-        """
+        supplemental_episode_block = ""
+        if s.supplemental_episodes:
+            supplemental_episode_block = "\n" + self._render_supplemental_episodes(s)
 
         print(
             f"""🛏️ Sleep Summary — {s.day:%A, %b %-d, %Y}\n
     Night: {s.night_start:%a %b %-d} → {s.night_end:%a %b %-d}
 
     Core overnight sleep:
-    Total sleep: {self._seconds_to_hm(s.core_sleep_seconds)}
+    Total sleep: {self._seconds_to_hm(s.core_sleep_seconds)} ({self._format_time_range(s.night_start, s.night_end)})
     Sleep efficiency: {s.efficiency_pct} %
 
-    Supplemental sleep (naps):
-    Total: {self._seconds_to_hm(s.supplemental_sleep_seconds)}
+    Supplemental sleep (naps): {self._seconds_to_hm(s.supplemental_sleep_seconds)}{supplemental_episode_block}
 
     Total sleep (24h): {self._seconds_to_hm(s.total_sleep_24h_seconds)}
 
@@ -177,6 +174,8 @@ class SleepSummaryService:
     REM sleep: {self._seconds_to_hm(s.rem_seconds)} ({s.rem_pct}%)
     Deep sleep: {self._seconds_to_hm(s.deep_seconds)} ({s.deep_pct}%)
 
+{awake_block.rstrip()}
+
     Average HR: {s.avg_hr:.0f} bpm
     Lowest HR: {s.min_hr} bpm
     Average HRV: {s.avg_hrv} ms
@@ -187,9 +186,60 @@ class SleepSummaryService:
 """
         )
 
+    def _format_time_range(self, start, end) -> str:
+        return f"{start:%H:%M} - {end:%H:%M}"
+
     # -------------------------------------------------
     # Presentation helpers (rendering concerns only)
     # -------------------------------------------------
+
+    def _render_supplemental_episodes(self, s: SleepDaySnapshot) -> str:
+        """
+        Render supplemental (nap) episodes as bullet lines only.
+
+        Assumes:
+        - Total duration is already rendered elsewhere
+        """
+        if not s.supplemental_episodes:
+            return ""
+
+        lines = []
+        for ep in s.supplemental_episodes:
+            duration_min = ep.duration_seconds // 60
+            lines.append(f"\t• {ep.start:%H:%M}–{ep.end:%H:%M} ({duration_min}m)")
+
+        return "\n".join(lines)
+
+    def _render_awake_periods(self, s: SleepDaySnapshot, max_entries: int = 3) -> str:
+        """
+        Render a compact list of awake periods from the sleep timeline.
+
+        Rules:
+        - Uses snapshot.timeline only
+        - Shows wall-clock times + duration
+        - No inference, no aggregation beyond formatting
+        """
+        if not s.timeline:
+            return ""
+
+        awake_segments = [
+            seg for seg in s.timeline.segments if seg.stage == SleepStage.AWAKE
+        ]
+
+        if not awake_segments:
+            return "    Awake periods: none\n"
+
+        lines = ["    Awake periods:"]
+
+        for seg in awake_segments[:max_entries]:
+            duration_min = int((seg.end - seg.start).total_seconds() // 60)
+            lines.append(f"      • {seg.start:%H:%M}–{seg.end:%H:%M} ({duration_min}m)")
+
+        remaining = len(awake_segments) - max_entries
+        if remaining > 0:
+            lines.append(f"      • +{remaining} more")
+
+        return "\n".join(lines) + "\n"
 
     def _seconds_to_hm(self, seconds: Optional[int]) -> str:
         if not seconds or seconds <= 0:
