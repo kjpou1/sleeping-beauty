@@ -4,6 +4,7 @@ from datetime import date, time, timedelta
 from typing import Optional
 
 from sleeping_beauty.core.sleep.sleep_day_snapshot import SleepDaySnapshot
+from sleeping_beauty.core.sleep.sleep_stage import SleepStage
 from sleeping_beauty.core.sleep.sleep_timeline_builder import (
     build_sleep_stage_timeline,
     build_supplemental_sleep_episodes,
@@ -89,6 +90,13 @@ async def build_sleep_day_snapshot(
                 f"(day={target_day}, sleep_id={core_sleep.id})"
             )
 
+    sleep_onset = None
+    if timeline and timeline.segments:
+        sleep_onset = next(
+            (seg.start for seg in timeline.segments if seg.stage != SleepStage.AWAKE),
+            None,
+        )
+
     return SleepDaySnapshot(
         day=target_day,
         night_start=night_start,
@@ -114,6 +122,7 @@ async def build_sleep_day_snapshot(
         timing_score=timing_score,
         timing_label=timing_label,
         timeline=timeline,
+        sleep_onset=sleep_onset,
         supplemental_episodes=supplemental_episodes,
     )
 

@@ -43,3 +43,5 @@ class SleepDaySnapshot:
     timeline: Optional[SleepStageTimeline] = None
     # --- Supplemental episodes ---
     supplemental_episodes: Tuple[SupplementalSleepEpisode, ...] = ()
+
+    sleep_onset: Optional[datetime] = None

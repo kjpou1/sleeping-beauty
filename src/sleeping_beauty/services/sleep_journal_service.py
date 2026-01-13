@@ -167,6 +167,7 @@ class SleepJournalService:
     • Supplemental sleep: {self._seconds_to_hm(s.supplemental_sleep_seconds)}{supplemental_episode_block}
     • Total sleep (24h): {self._seconds_to_hm(s.total_sleep_24h_seconds)}
 
+    {self._render_sleep_onset(s)}
     {timeline_block}
     Sleep process:
     • Sleep efficiency: {s.efficiency_pct} %
@@ -218,6 +219,18 @@ No sleep data available for this day.
 
     def _format_time_range(self, start, end) -> str:
         return f"{start:%H:%M} - {end:%H:%M}"
+
+    def _render_sleep_onset(self, s: SleepDaySnapshot) -> str:
+        if not s.sleep_onset:
+            return ""
+
+        latency_min = s.latency_seconds // 60 if s.latency_seconds is not None else None
+
+        latency_part = (
+            f" (latency: {latency_min} min)" if latency_min is not None else ""
+        )
+
+        return f"Sleep onset: {s.sleep_onset:%H:%M}{latency_part}\n"
 
     def _render_supplemental_episodes(self, s: SleepDaySnapshot) -> str:
         """
