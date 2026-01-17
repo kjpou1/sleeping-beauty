@@ -112,6 +112,7 @@ class OuraApiClient:
         method: str,
         path: str,
         params: dict | None = None,
+        json: dict | None = None,
     ) -> dict:
         """
         Execute a single HTTP request against the Oura API.
@@ -126,6 +127,7 @@ class OuraApiClient:
             method=method,
             url=path,
             params=params,
+            json=json,
             headers=headers,
         )
 

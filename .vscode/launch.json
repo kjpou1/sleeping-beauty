@@ -64,6 +64,14 @@
       ],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Webhook Subscribe",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "src/sleeping_beauty/scripts/register_oura_webhook.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

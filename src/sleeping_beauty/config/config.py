@@ -47,6 +47,10 @@ class Config(metaclass=SingletonMeta):
         self._end_date: Optional[str] = None
         self._divider: bool = False
 
+        # +++ Webhookds +++
+        self._oura_webhook_secret = None
+        self._oura_webhook_verification_token = None
+
         Config._is_initialized = True
 
     def _ensure_directories_exist(self):
@@ -161,6 +165,14 @@ class Config(metaclass=SingletonMeta):
         if "client_secret" in oura_cfg:
             self._oura_client_secret = oura_cfg["client_secret"]
 
+        if "webhook_secret" in oura_cfg:
+            self._oura_webhook_secret = oura_cfg["webhook_secret"]
+
+        if "webhook_verification_token" in oura_cfg:
+            self._oura_webhook_verification_token = oura_cfg[
+                "webhook_verification_token"
+            ]
+
         if "token_path" in oura_cfg:
             self.oura_token_path = oura_cfg["token_path"]
 
@@ -248,6 +260,30 @@ class Config(metaclass=SingletonMeta):
           2. Environment variable OURA_CLIENT_SECRET
         """
         return self._oura_client_secret or os.getenv("OURA_CLIENT_SECRET", "")
+
+    @property
+    def oura_webhook_secret(self) -> str:
+        """
+        Oura OAuth webhook secret.
+
+        Precedence:
+          1. YAML config
+          2. Environment variable OURA_WEBHOOK_SECRET
+        """
+        return self._oura_webhook_secret or os.getenv("OURA_WEBHOOK_SECRET", "")
+
+    @property
+    def oura_webhook_verification_token(self) -> str:
+        """
+        Oura webhook verification token.
+
+        Precedence:
+        1. YAML config
+        2. Environment variable OURA_WEBHOOK_VERIFICATION_TOKEN
+        """
+        return self._oura_webhook_verification_token or os.getenv(
+            "OURA_WEBHOOK_VERIFICATION_TOKEN", ""
+        )
 
     @property
     def oura_token_path(self) -> Path:
