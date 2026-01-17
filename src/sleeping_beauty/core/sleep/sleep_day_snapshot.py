@@ -39,6 +39,10 @@ class SleepDaySnapshot:
     timing_score: int
     timing_label: str
 
+    # --- Readiness temperature (optional) ---
+    temperature_deviation: Optional[float]
+    temperature_trend_deviation: Optional[float]
+
     # --- Observational timeline ---
     timeline: Optional[SleepStageTimeline] = None
     # --- Supplemental episodes ---

@@ -121,6 +121,11 @@ async def build_sleep_day_snapshot(
         readiness_score=getattr(readiness, "score", 0) or 0,
         timing_score=timing_score,
         timing_label=timing_label,
+        # --- Readiness temperature ---
+        temperature_deviation=getattr(readiness, "temperature_deviation", None),
+        temperature_trend_deviation=getattr(
+            readiness, "temperature_trend_deviation", None
+        ),
         timeline=timeline,
         sleep_onset=sleep_onset,
         supplemental_episodes=supplemental_episodes,

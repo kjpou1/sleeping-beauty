@@ -155,6 +155,16 @@ class SleepJournalService:
             supplemental_episode_block = "\n" + self._render_supplemental_episodes(s)
 
         timeline_block = self._render_sleep_timeline(s)
+        temperature_block = ""
+        if (
+            s.temperature_deviation is not None
+            or s.temperature_trend_deviation is not None
+        ):
+            temperature_block = f"""
+    Temperature (Readiness):
+    • Temperature deviation: {s.temperature_deviation} °C
+    • Temperature trend deviation: {s.temperature_trend_deviation} °C
+"""
 
         print(
             f"""🛏️ Sleep Journal — {s.day:%A, %b %-d, %Y}
@@ -187,16 +197,25 @@ class SleepJournalService:
     • Sleep score: {s.sleep_score}
     • Timing: {s.timing_label}
     • Readiness score: {s.readiness_score}
+    
+    {temperature_block}
 
     ────────────────────────────
 
     Nocturnal Bathroom
     • Bathroom trips: 0 / 1 / 2+
     • If ≥1:
-    – Woke to pee / peed after waking / unclear
-    – Return to sleep: yes / no / partial
+      – Primary reason: woke-to-pee / peed-after-waking
+      – Return to sleep: yes / no / partial
 
     ────────────────────────────
+
+    Subjective markers (forced choice):
+    • Awakening quality:
+      abrupt / calm-alert / gradual / restless
+
+    • Thermal state on waking:
+      cool / neutral / warm
 
     Subjective Feedback (free format)
     [Write anything relevant: how you felt on waking, heat/cold, grogginess, pain,
