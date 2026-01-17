@@ -18,6 +18,11 @@ _SLEEP_STAGE_MAP = {
 }
 
 
+# ================================================================
+# Sleep stage timeline
+# ================================================================
+
+
 def build_sleep_stage_timeline(core_sleep) -> Optional[SleepStageTimeline]:
     """
     Build an observational sleep stage timeline from Oura sleep_phase_5_min.
@@ -76,34 +81,75 @@ def build_sleep_stage_timeline(core_sleep) -> Optional[SleepStageTimeline]:
     )
 
 
+# ================================================================
+# Supplemental sleep (FINAL, CORRECT)
+# ================================================================
+
+
+def _previous_core_sleep_end(core_sleep, sleep_docs):
+    """
+    Find the most recent long sleep that ended before the current core sleep.
+    """
+    previous = [
+        d
+        for d in sleep_docs
+        if (
+            d.id != core_sleep.id
+            and getattr(d, "type", None) == "long_sleep"
+            and d.bedtime_end
+            and d.bedtime_end < core_sleep.bedtime_start
+        )
+    ]
+
+    if not previous:
+        return None
+
+    return max(previous, key=lambda d: d.bedtime_end).bedtime_end
+
+
 def build_supplemental_sleep_episodes(
-    *, sleep_docs, core_sleep_id: str, target_day: date
+    *, sleep_docs, core_sleep, target_day: date
 ) -> tuple[SupplementalSleepEpisode, ...]:
     """
-    Build explicit supplemental (nap) sleep episodes for target_day.
+    Build supplemental (nap) sleep episodes for a night-anchored sleep journal.
+
+    Supplemental sleep is defined as sleep occurring:
+      - AFTER the previous core night sleep ended
+      - BEFORE the current core night sleep starts
+      - Excluding the core sleep itself
     """
-    episodes = []
+
+    episodes: List[SupplementalSleepEpisode] = []
+
+    prev_night_end = _previous_core_sleep_end(core_sleep, sleep_docs)
 
     for d in sleep_docs:
-        if (
-            d.day == target_day
-            and d.id != core_sleep_id
-            and (d.total_sleep_duration or 0) > 0
-            and d.bedtime_start
-            and d.bedtime_end
-        ):
-            episodes.append(
-                SupplementalSleepEpisode(
-                    start=d.bedtime_start,
-                    end=d.bedtime_end,
-                    duration_seconds=int(d.total_sleep_duration or 0),
-                )
-            )
+        # print("\n\n\n", d, "\n")
+        # Exclude the core sleep itself
+        if d.id == core_sleep.id:
+            continue
 
-    # stable, chronological
-    episodes.sort(key=lambda e: e.start)
-    return tuple(episodes)
-    episodes.sort(key=lambda e: e.start)
-    return tuple(episodes)
+        if not (d.total_sleep_duration or 0):
+            continue
+
+        if not d.bedtime_start or not d.bedtime_end:
+            continue
+
+        # Must end before current night sleep starts
+        if d.bedtime_end > core_sleep.bedtime_start:
+            continue
+
+        # Must start after previous night sleep ended (if known)
+        if prev_night_end and d.bedtime_start < prev_night_end:
+            continue
+
+        episodes.append(
+            SupplementalSleepEpisode(
+                start=d.bedtime_start,
+                end=d.bedtime_end,
+                duration_seconds=int(d.total_sleep_duration),
+            )
+        )
+
     episodes.sort(key=lambda e: e.start)
     return tuple(episodes)

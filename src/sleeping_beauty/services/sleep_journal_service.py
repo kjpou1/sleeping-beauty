@@ -22,7 +22,9 @@ The journal differs from the summary in *presentation only*:
 - No aggregation or interpretation
 """
 
+from collections import defaultdict
 from datetime import date, timedelta
+from enum import Enum
 from typing import Optional
 
 from sleeping_beauty.clients.oura_api_client import OuraApiClient
@@ -37,6 +39,13 @@ from sleeping_beauty.oura.auth.domain.exceptions import LoginRequiredError
 from sleeping_beauty.oura.auth.oura_auth import OuraAuth
 
 logger = LoggerManager.get_logger(__name__)
+
+
+class SupplementalRange(Enum):
+    MORNING = "Morning"
+    MIDDAY = "Midday"
+    AFTERNOON = "Afternoon"
+    EVENING = "Evening"
 
 
 class SleepJournalService:
@@ -152,7 +161,13 @@ class SleepJournalService:
 
         supplemental_episode_block = ""
         if s.supplemental_episodes:
-            supplemental_episode_block = "\n" + self._render_supplemental_episodes(s)
+            supplemental_episode_block = (
+                "\n\n"
+                + self._render_supplemental_range_summary(s)
+                + "\n\n"
+                + "      Supplemental sleep episodes:\n"
+                + self._render_supplemental_episodes(s)
+            )
 
         timeline_block = self._render_sleep_timeline(s)
         temperature_block = ""
@@ -178,6 +193,7 @@ class SleepJournalService:
     • Total sleep (24h): {self._seconds_to_hm(s.total_sleep_24h_seconds)}
 
     {self._render_sleep_onset(s)}
+    {self._render_early_waking(s)}
     {timeline_block}
     Sleep process:
     • Sleep efficiency: {s.efficiency_pct} %
@@ -224,6 +240,27 @@ class SleepJournalService:
     """
         )
 
+    def _render_early_waking(self, s: SleepDaySnapshot) -> str:
+        """
+        Render Early waking section.
+
+        Final wake time is derived as the end time of the last
+        timeline segment (observational only).
+        """
+
+        if not s.timeline or not s.timeline.segments:
+            return ""
+
+        last_segment = s.timeline.segments[-1]
+        final_wake_time = last_segment.end
+
+        return f"""Early waking:
+    • Final wake time: {final_wake_time:%H:%M}
+    • Early waking final: yes / no
+    • If no: returned to sleep for ~__ minutes
+
+    """
+
     def _render_missing_day(self, day: date) -> None:
         """
         Render an explicit journal entry for days with no sleep data.
@@ -250,6 +287,37 @@ No sleep data available for this day.
         )
 
         return f"Sleep onset: {s.sleep_onset:%H:%M}{latency_part}\n"
+
+    def _supplemental_range_for_hour(self, hour: int) -> SupplementalRange:
+        """
+        Clock-based categorization only.
+        No inference, no sleep semantics.
+        """
+        if 6 <= hour < 10:
+            return SupplementalRange.MORNING
+        if 10 <= hour < 14:
+            return SupplementalRange.MIDDAY
+        if 14 <= hour < 18:
+            return SupplementalRange.AFTERNOON
+        return SupplementalRange.EVENING
+
+    def _render_supplemental_range_summary(self, s: SleepDaySnapshot) -> str:
+        totals = defaultdict(int)
+        counts = defaultdict(int)
+
+        for ep in s.supplemental_episodes:
+            rng = self._supplemental_range_for_hour(ep.start.hour)
+            minutes = ep.duration_seconds // 60
+            totals[rng] += minutes
+            counts[rng] += 1
+
+        lines = ["      Supplemental sleep by time range:"]
+        for rng in SupplementalRange:
+            if rng in totals:
+                suffix = f" ({counts[rng]} episodes)" if counts[rng] > 1 else ""
+                lines.append(f"      • {rng.value}: {totals[rng]}m{suffix}")
+
+        return "\n".join(lines)
 
     def _render_supplemental_episodes(self, s: SleepDaySnapshot) -> str:
         """
@@ -298,4 +366,6 @@ No sleep data available for this day.
     def _seconds_to_minutes(self, seconds: Optional[int]) -> str:
         if seconds is None:
             return "n/a"
+        return f"{seconds // 60}"
+        return f"{seconds // 60}"
         return f"{seconds // 60}"

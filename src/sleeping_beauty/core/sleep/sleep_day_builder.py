@@ -38,15 +38,11 @@ async def build_sleep_day_snapshot(
 
     supplemental_episodes = build_supplemental_sleep_episodes(
         sleep_docs=sleep_docs,
-        core_sleep_id=core_sleep.id,
+        core_sleep=core_sleep,
         target_day=target_day,
     )
 
-    supplemental_seconds = compute_supplemental_sleep_seconds(
-        sleep_docs=sleep_docs,
-        core_sleep_id=core_sleep.id,
-        target_day=target_day,
-    )
+    supplemental_seconds = sum(ep.duration_seconds for ep in supplemental_episodes)
 
     core_total = core_sleep.total_sleep_duration or 0
     total_24h_seconds = core_total + supplemental_seconds
@@ -172,27 +168,3 @@ def is_night_sleep(doc) -> bool:
     """
     start = doc.bedtime_start.timetz()
     return start >= time(18, 0) or start <= time(12, 0)
-
-
-# ================================================================
-# Supplemental sleep
-# ================================================================
-
-
-def compute_supplemental_sleep_seconds(
-    *, sleep_docs, core_sleep_id: str, target_day: date
-) -> int:
-    """
-    Supplemental sleep should only count episodes belonging to target_day
-    (doc.day == target_day) excluding the selected core sleep.
-    """
-    supplemental = [
-        d
-        for d in sleep_docs
-        if (
-            d.day == target_day
-            and d.id != core_sleep_id
-            and (d.total_sleep_duration or 0) > 0
-        )
-    ]
-    return int(sum(d.total_sleep_duration or 0 for d in supplemental))
