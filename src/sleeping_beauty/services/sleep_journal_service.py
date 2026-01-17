@@ -251,8 +251,7 @@ class SleepJournalService:
         if not s.timeline or not s.timeline.segments:
             return ""
 
-        last_segment = s.timeline.segments[-1]
-        final_wake_time = last_segment.end
+        final_wake_time = s.night_end
 
         return f"""Early waking:
     • Final wake time: {final_wake_time:%H:%M}
