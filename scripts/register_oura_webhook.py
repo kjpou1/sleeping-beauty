@@ -13,13 +13,18 @@ Run only when you intend to re-provision webhooks.
 
 import argparse
 import asyncio
+import os
 import sys
+from datetime import datetime
 from pprint import pprint
 
 import httpx
 
+from sleeping_beauty.clients.oura_api_client import OuraApiClient
 from sleeping_beauty.clients.oura_webhook_admin import OuraWebhookAdminClient
 from sleeping_beauty.config.config import Config
+from sleeping_beauty.oura.auth.domain.auth_preflight_result import AuthPreflightReport
+from sleeping_beauty.oura.auth.oura_auth import OuraAuth
 
 # ---------------------------------------------------------------------
 # Configuration
@@ -135,6 +140,11 @@ def parse_args():
         action="store_true",
         help="List existing webhook subscriptions and exit",
     )
+    parser.add_argument(
+        "--whoami",
+        action="store_true",
+        help="Fetch personal info for the currently authorized Oura user and exit",
+    )
     return parser.parse_args()
 
 
@@ -163,6 +173,11 @@ async def main(args) -> None:
     )
 
     try:
+
+        if args.whoami:
+            await print_oura_identity()
+            return
+
         # ----------------------------------------------------------
         # List existing subscriptions
         # ----------------------------------------------------------
@@ -174,8 +189,9 @@ async def main(args) -> None:
                 print(
                     f"- id={h.get('id')} "
                     f"url={h.get('callback_url')} "
-                    f"{h.get('data_type')}"
-                    f" exp={h.get('expiration_time')}"
+                    f"data_type={h.get('data_type')} "
+                    f"event_type={h.get('event_type')} "
+                    f"exp={h.get('expiration_time')}"
                 )
         else:
             print("\nNo existing webhook subscriptions found.")
@@ -237,6 +253,49 @@ async def main(args) -> None:
 
     finally:
         await admin.aclose()
+
+
+async def print_oura_identity() -> None:
+    """
+    Fetch and print the currently authorized Oura user identity.
+
+    Uses the standard OuraAuth preflight + token provider flow.
+    """
+
+    oura_auth = OuraAuth.from_config()
+    preflight: AuthPreflightReport = oura_auth.preflight_check()
+
+    if not preflight.ok:
+        print("\n".join(preflight.messages))
+        # raise RuntimeError("Oura authentication preflight failed")
+
+    client = OuraApiClient(token_provider=oura_auth.get_access_token)
+
+    try:
+        info = await client.get_personal_info()
+
+        print("\nOura identity:")
+        print(f"  user_id: {info.user_id}")
+
+        if hasattr(info, "email"):
+            print(f"  email: {info.email}")
+
+        if hasattr(info, "timezone"):
+            print(f"  timezone: {info.timezone}")
+        else:
+            now = datetime.now().astimezone()
+            tz_name = str(now.tzinfo)
+
+            offset = now.utcoffset()
+            total_minutes = int(offset.total_seconds() // 60)
+            hours, minutes = divmod(abs(total_minutes), 60)
+            sign = "+" if total_minutes >= 0 else "-"
+            offset_str = f"UTC{sign}{hours:02d}:{minutes:02d}"
+
+            print(f"  timezone: {tz_name} ({offset_str})")
+
+    finally:
+        await client.aclose()
 
 
 # ---------------------------------------------------------------------

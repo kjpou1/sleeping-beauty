@@ -90,6 +90,15 @@
       "program": "scripts/register_oura_webhook.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Who Am I",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "scripts/register_oura_webhook.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": ["--whoami"]
     }
   ]
 }
