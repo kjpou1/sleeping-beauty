@@ -1,5 +1,8 @@
 import httpx
 
+from sleeping_beauty.clients.models.webhook_subscription_result import (
+    WebhookSubscriptionResult,
+)
 from sleeping_beauty.logsys.logger_manager import LoggerManager
 
 LoggerManager.bootstrap()
@@ -68,7 +71,7 @@ class OuraWebhookAdminClient:
         data_type: str,
         event_type: str,
         verification_token: str,
-    ) -> dict:
+    ) -> WebhookSubscriptionResult:
         """
         POST /v2/webhook/subscription
         """
@@ -85,10 +88,26 @@ class OuraWebhookAdminClient:
         )
 
         if resp.status_code >= 400:
-            logger.error("Webhook create failed: {}", resp.text)
-            resp.raise_for_status()
+            detail = None
+            try:
+                body = resp.json()
+                detail = body.get("detail", body)
+            except Exception:
+                detail = resp.text
 
-        return resp.json()
+            return WebhookSubscriptionResult(
+                ok=False,
+                status_code=resp.status_code,
+                result=None,
+                error=detail,
+            )
+
+        return WebhookSubscriptionResult(
+            ok=True,
+            status_code=resp.status_code,
+            result=resp.json(),
+            error=None,
+        )
 
     # ------------------------------------------------------------------
     # UPDATE

@@ -87,7 +87,7 @@
       "name": "Webhook Subscribe",
       "type": "debugpy",
       "request": "launch",
-      "program": "src/sleeping_beauty/scripts/register_oura_webhook.py",
+      "program": "scripts/register_oura_webhook.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}"
     }

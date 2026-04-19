@@ -16,6 +16,8 @@ import asyncio
 import sys
 from pprint import pprint
 
+import httpx
+
 from sleeping_beauty.clients.oura_webhook_admin import OuraWebhookAdminClient
 from sleeping_beauty.config.config import Config
 
@@ -206,15 +208,29 @@ async def main(args) -> None:
         for sub in WEBHOOK_SUBSCRIPTIONS:
             print(f"- Creating {sub['data_type']}/{sub['event_type']} → {WEBHOOK_URL}")
 
-            created = await admin.create_subscription(
-                callback_url=WEBHOOK_URL,
-                verification_token=verification_token,
-                data_type=sub["data_type"],
-                event_type=sub["event_type"],
-            )
+            try:
+                created = await admin.create_subscription(
+                    callback_url=WEBHOOK_URL,
+                    verification_token=verification_token,
+                    data_type=sub["data_type"],
+                    event_type=sub["event_type"],
+                )
+            except httpx.RequestError as exc:
+                print("  Failed:")
+                print(f"    transport_error: {exc}")
+                continue
+
+            if not created:
+                print("  Failed:")
+                print(f"    status_code: {created.status_code}")
+                print(f"    error: {created.error}")
+                continue
+
+            result = created.result or {}
 
             print("  Created:")
-            pprint(created)
+            print(f"    id: {result.get('id')}")
+            print(f"    expires: {result.get('expiration_time')}")
 
         print("\nWebhook provisioning complete.")
 
