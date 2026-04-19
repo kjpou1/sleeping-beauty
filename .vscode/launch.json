@@ -99,6 +99,23 @@
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "args": ["--whoami"]
+    },
+    {
+      "name": "Webhook Subscribe catcher",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "scripts/register_oura_webhook_catcher.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Who Am I catcher",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "scripts/register_oura_webhook_catcher.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": ["--whoami"]
     }
   ]
 }
