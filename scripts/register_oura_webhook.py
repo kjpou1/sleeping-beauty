@@ -174,7 +174,8 @@ async def main(args) -> None:
                 print(
                     f"- id={h.get('id')} "
                     f"url={h.get('callback_url')} "
-                    f"{h.get('data_type')}/{h.get('event_type')}"
+                    f"{h.get('data_type')}"
+                    f" exp={h.get('expiration_time')}"
                 )
         else:
             print("\nNo existing webhook subscriptions found.")
