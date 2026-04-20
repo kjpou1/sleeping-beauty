@@ -15,8 +15,8 @@ from sleeping_beauty.oura.auth.oura_auth import OuraAuth
 logger = LoggerManager.get_logger(__name__)
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("sleeping_beauty.ingress")
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger("sleeping_beauty.ingress")
 
 config = Config()
 config.config_path = "configs/config.yaml"
@@ -98,10 +98,7 @@ async def oura_webhook_challenge(request: Request):
             raise HTTPException(status_code=500)
 
         if verification_token != expected:
-            logger.warning(
-                "Invalid webhook verification token: {}",
-                verification_token,
-            )
+            logger.warning(f"Invalid webhook verification token: {verification_token}")
             raise HTTPException(status_code=401)
 
         logger.info("Responding to verified Oura webhook challenge")
