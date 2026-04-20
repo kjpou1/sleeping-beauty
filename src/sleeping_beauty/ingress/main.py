@@ -1,22 +1,19 @@
 import hashlib
 import hmac
 import json
-import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from sleeping_beauty.clients.oura_webhook_admin import OuraWebhookAdminClient
 from sleeping_beauty.config.config import Config
 from sleeping_beauty.logsys.logger_manager import LoggerManager
 from sleeping_beauty.oura.auth.oura_auth import OuraAuth
 
+LoggerManager.bootstrap()
+
+
 logger = LoggerManager.get_logger(__name__)
-
-
-# logging.basicConfig(level=logging.INFO)
-# logger = logging.getLogger("sleeping_beauty.ingress")
 
 config = Config()
 config.config_path = "configs/config.yaml"
@@ -37,7 +34,7 @@ def verify_oura_signature(raw_body: bytes, signature: str) -> bool:
 
     Signature is expected to be uppercase hex.
     """
-    logging.info("verifying signature")
+    logger.info("Verifying Oura webhook signature")
     secret = config.oura_webhook_secret.encode("utf-8")
 
     if not secret:
@@ -122,8 +119,11 @@ async def oura_webhook(request: Request):
     raw_body = await request.body()
 
     logger.info(
-        "Headers=%s BodyBytes=%d",
-        dict(request.headers),
+        "Webhook request \nhost={} \nuser_agent={} \ncontent_type={} \ncf_ray={} \nbody_bytes={}",
+        request.headers.get("host"),
+        request.headers.get("user-agent"),
+        request.headers.get("content-type"),
+        request.headers.get("cf-ray"),
         len(raw_body),
     )
 
@@ -137,7 +137,7 @@ async def oura_webhook(request: Request):
 
     if isinstance(payload, dict) and "challenge" in payload:
         logger.info(
-            f"Responding to Oura webhook verification challenge: {payload.get("challenge")}"
+            f"Responding to Oura webhook verification challenge: {payload.get('challenge')}"
         )
         return JSONResponse(
             status_code=200,
